@@ -132,6 +132,7 @@ button { font-family:inherit; color:inherit; cursor:pointer; }
 .navbar .cmp { display:block; font-size:11.5px; color:var(--mute); margin-top:2px; }
 .poi.grp { width:auto; padding:0 6px; gap:3px; } .poi.grp b { font-size:11px; color:#fff; }
 .poi { width:24px; height:24px; border-radius:7px; background:rgba(13,17,23,.78); border:1px solid rgba(255,255,255,.35); display:flex; align-items:center; justify-content:center; font-size:13px; transform:translate(-50%,-50%); box-shadow:0 2px 6px rgba(0,0,0,.3); }
+.fab.on { background:linear-gradient(135deg,#2f80ff,#5a5cff); border-color:transparent; }
 .toast { position:fixed; left:50%; top:calc(140px + env(safe-area-inset-top,0px)); transform:translateX(-50%) translateY(-20px); opacity:0; z-index:900; border-radius:14px; padding:10px 16px; font-size:14px; font-weight:700; transition:.3s; pointer-events:none; }
 .toast.show { opacity:1; transform:translateX(-50%); }
 </style>
@@ -146,6 +147,7 @@ button { font-family:inherit; color:inherit; cursor:pointer; }
 <div class="crew" id="crew"></div>
 
 <div class="fabs">
+  <button class="fab glass" id="headup" title="내가 보는 방향이 위로">🧭</button>
   <button class="fab glass" id="locate" title="내 위치">🎯</button>
   <button class="fab glass" id="fit" title="일행 모두 보기">👥</button>
   <button class="fab glass" id="meet" title="모임장소">🚩</button>
@@ -165,6 +167,7 @@ button { font-family:inherit; color:inherit; cursor:pointer; }
 <div class="toast glass" id="toast"></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-rotate@0.2.8/dist/leaflet-rotate-src.js"></script>
 <script>
 // 공포지수: 높이·낙하·회전·속도·체감(무서움) 종합한 주관 평가. pos 는 OpenStreetMap 에서 위치가 확인된 것만.
 const RIDES = [
@@ -199,7 +202,7 @@ const toast = t => { const e = $('toast'); e.textContent = t; e.classList.add('s
 
 if (!localStorage.getItem('seenNotice')) { setTimeout(() => { toast('공포지수는 재미로 매긴 점수예요 · 운영·대기·위치는 에버랜드 공식 앱이 기준'); localStorage.setItem('seenNotice','1'); }, 1500); }
 // 지도(밝은 길이 잘 보이는 어두운 바탕 지도)
-const map = L.map('map', { zoomControl:false, attributionControl:true }).setView([37.2918, 127.2025], 16);
+const map = L.map('map', { zoomControl:false, attributionControl:true, rotate:true, touchRotate:false, rotateControl:false, bearing:0 }).setView([37.2918, 127.2025], 16);
 // 일반 멤버는 에버랜드 주변만 볼 수 있게 지도를 묶는다. 개발자(마크)는 링크에 관리 키(&k=…)를 붙이면 묶지 않는다(2026-11-20 대표님 요청)
 let admin = false;
 const ADMIN_H = '27eb33c4e98465f1f9f06bdddb308442a8ac59ca8a4d95c5d24741d86ca25b0e';
@@ -485,6 +488,22 @@ function updateNav() {
   $('navCmp').textContent = heading == null ? '화살표 위 = 지도 위쪽(북). 폰을 돌리면 맞춰지게 하려면 화살표를 눌러 나침반 허용' : '폰이 향한 방향 기준 화살표';
 }
 $('navArrow').onclick = enableCompass;
+// 방향 모드(2026-11-21 대표님: "화면 위쪽이 내가 가는 방향"): 켜면 나침반 방향대로 지도를 돌리고 내 위치를 따라간다. 끄면 북쪽이 위
+let headUp = false;
+$('headup').onclick = async () => {
+  headUp = !headUp; $('headup').classList.toggle('on', headUp);
+  if (headUp) {
+    await enableCompass();
+    if (myDot) map.setView(myDot.getLatLng(), Math.max(map.getZoom(), 17));
+    toast(heading == null ? '폰을 한 바퀴 돌리면 방향이 잡혀요 🧭' : '내가 보는 방향이 위로 와요 🧭');
+  } else { map.setBearing(0); toast('북쪽이 위로 돌아왔어요'); }
+};
+let lastBear = 0;
+setInterval(() => {
+  if (!headUp) return;
+  if (heading != null && Math.abs(((heading - lastBear + 540) % 360) - 180) > 3) { lastBear = heading; map.setBearing(-heading); }
+  if (myDot) map.panTo(myDot.getLatLng(), { animate:true, duration:.5 });
+}, 700);
 $('navX').onclick = () => { navTarget = null; $('navbar').classList.remove('on'); $('crew').style.display = ''; if (navLine) { map.removeLayer(navLine); navLine = null; } };
 setInterval(updateNav, 2000);
 </script>
