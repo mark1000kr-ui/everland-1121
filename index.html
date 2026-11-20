@@ -201,7 +201,10 @@ const map = L.map('map', { zoomControl:false, attributionControl:true }).setView
 let admin = false;
 const ADMIN_H = '27eb33c4e98465f1f9f06bdddb308442a8ac59ca8a4d95c5d24741d86ca25b0e';
 (async () => {
-  const k = (location.hash.match(/k=([\w-]+)/) || [])[1] || localStorage.getItem('k');
+  // 링크에 view=member 가 있으면 관리자 폰에서도 일반 멤버 화면으로 본다(저장된 관리 키는 그대로 둠) — 2026-11-21 대표님 시험용
+  const asMember = /view=member/.test(location.hash);
+  const k = asMember ? null : ((location.hash.match(/k=([\w-]+)/) || [])[1] || localStorage.getItem('k'));
+  if (asMember) toast('일반 멤버 화면으로 보는 중이에요 👀');
   admin = false;
   if (k && crypto.subtle) { const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(k)); admin = [...new Uint8Array(d)].map(b => b.toString(16).padStart(2,'0')).join('') === ADMIN_H; }
   if (admin) { localStorage.setItem('k', k); renderCrew(); return; }
