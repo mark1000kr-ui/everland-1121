@@ -89,10 +89,14 @@ button { font-family:inherit; color:inherit; cursor:pointer; }
 .list { margin:6px 0 0; padding-left:18px; font-size:14.5px; line-height:1.7; color:#dfe2e8; }
 .note { font-size:12px; color:var(--mute); line-height:1.55; margin:8px 2px; }
 
-/* 지도 핀 */
-.pin { display:flex; align-items:center; gap:5px; transform:translate(-14px,-14px); white-space:nowrap; }
-.pin b { width:28px; height:28px; border-radius:50%; background:var(--c); color:#0d1117; font-size:11.5px; font-weight:900; display:flex; align-items:center; justify-content:center; border:2px solid #fff; box-shadow:0 4px 12px rgba(0,0,0,.4); }
-.pin span { font-size:12px; font-weight:800; color:#fff; text-shadow:0 1px 3px #000,0 0 6px #000; }
+/* 지도 핀: 어두운 알약 말풍선, 점수는 색 글자, 아래 꼬리로 위치 표시 */
+.pin { position:relative; display:inline-flex; align-items:center; gap:6px; transform:translate(-50%,calc(-100% - 7px)); white-space:nowrap;
+  background:rgba(13,17,23,.88); border:1px solid rgba(255,255,255,.18); border-radius:10px; padding:4px 8px 4px 7px; box-shadow:0 6px 16px rgba(0,0,0,.35); }
+.pin::after { content:""; position:absolute; left:50%; bottom:-6px; transform:translateX(-50%); border:6px solid transparent; border-bottom:0; border-top-color:rgba(13,17,23,.88); }
+.pin::before { content:""; width:4px; align-self:stretch; border-radius:2px; background:var(--c); }
+.pin b { font-size:13px; font-weight:900; color:var(--c); font-variant-numeric:tabular-nums; letter-spacing:-.02em; }
+.pin span { font-size:12px; font-weight:700; color:#fff; }
+.dot { width:12px; height:12px; border-radius:50%; background:var(--c); border:2px solid #fff; box-shadow:0 2px 6px rgba(0,0,0,.4); transform:translate(-50%,-50%); }
 .person { transform:translate(-17px,-17px); }
 .person b { width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:13px; color:#0d1117; border:3px solid #fff; box-shadow:0 0 0 6px rgba(61,220,151,.25), 0 6px 16px rgba(0,0,0,.45); }
 .person span { position:absolute; top:38px; left:50%; transform:translateX(-50%); font-size:12px; font-weight:800; color:#fff; background:rgba(13,17,23,.8); padding:2px 7px; border-radius:7px; white-space:nowrap; }
@@ -124,7 +128,7 @@ button { font-family:inherit; color:inherit; cursor:pointer; }
   <button data-t="map" class="on"><span>🗺️</span>지도</button>
   <button data-t="rides"><span>🎢</span>공포지수</button>
   <button data-t="course"><span>🧭</span>코스</button>
-  <button data-t="tips"><span>🧥</span>날씨·팁</button>
+  <button data-t="tips"><span>🌡️</span>날씨</button>
 </nav>
 <div class="toast glass" id="toast"></div>
 
@@ -169,8 +173,10 @@ function drawPins() {
   pinLayer.clearLayers();
   const z = map.getZoom();
   RIDES.filter(r => r.pos).forEach(r => {
-    const name = (z >= 17 || r.s >= 6) ? `<span>${r.n}</span>` : '';
-    L.marker(r.pos, { icon: L.divIcon({ className:'', html:`<div class="pin" style="--c:${col(r.s)}"><b>${r.s.toFixed(1)}</b>${name}</div>`, iconSize:[0,0] }) })
+    // 멀리서 보면 순한 기구(4 미만)는 작은 점만, 가까이(17+)·무서운 기구는 이름표
+    const full = z >= 17 || r.s >= 4;
+    const html = full ? `<div class="pin" style="--c:${col(r.s)}"><b>${r.s.toFixed(1)}</b><span>${r.n}</span></div>` : `<div class="dot" style="--c:${col(r.s)}"></div>`;
+    L.marker(r.pos, { icon: L.divIcon({ className:'', html, iconSize:[0,0] }), zIndexOffset: Math.round(r.s*100) })
      .on('click', () => { openTab('rides'); setTimeout(() => document.querySelector(`[data-ride="${r.n}"]`)?.scrollIntoView({ behavior:'smooth', block:'center' }), 350); })
      .addTo(pinLayer);
   });
@@ -223,10 +229,9 @@ function renderCourse() {
 
 let WX = null;
 function renderTips() {
-  $('sheetBody').innerHTML = `<h2>날씨·꿀팁</h2><p class="lead">11/21 에버랜드 시간별 예보</p>
+  $('sheetBody').innerHTML = `<h2>날씨</h2><p class="lead">11/21 에버랜드 시간별 예보</p>
     <div class="card"><div class="wx" id="wx">${WX || '불러오는 중…'}</div></div>
-    <div class="card"><h3>🎒 챙길 것</h3><ul class="list"><li>핫팩·장갑·목도리 — 저녁엔 영하권 가능</li><li>보조배터리 — 위치 공유하면 빨리 닳아요</li><li>우비 — 썬더폴스·아마존 탈 거면 필수</li><li>편한 신발, 신분증·할인카드</li></ul></div>
-    <div class="card"><h3>💡 꿀팁</h3><ul class="list"><li>코스터는 안경·모자·폰 고정, 짐은 보관함</li><li>젖는 기구는 하루 중 가장 따뜻할 때</li><li>흩어지면 🚩 모임장소 깃발로 집결</li><li>운휴·대기는 에버랜드 공식 앱이 정확</li></ul></div>`;
+`;
 }
 fetch('https://api.open-meteo.com/v1/forecast?latitude=37.2918&longitude=127.2025&hourly=temperature_2m,apparent_temperature,precipitation_probability,weather_code&current=temperature_2m&timezone=Asia%2FSeoul&start_date=2026-11-21&end_date=2026-11-21')
   .then(r => r.json()).then(d => {
