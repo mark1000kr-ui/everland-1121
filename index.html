@@ -130,6 +130,7 @@ button { font-family:inherit; color:inherit; cursor:pointer; }
 <div class="crew" id="crew"></div>
 
 <div class="fabs">
+  <button class="fab glass" id="locate" title="내 위치">🎯</button>
   <button class="fab glass" id="fit" title="일행 모두 보기">👥</button>
   <button class="fab glass" id="meet" title="모임장소">🚩</button>
   <button class="fab share" id="share"><span class="dot"></span><span id="shareTxt">위치 공유</span></button>
@@ -351,6 +352,16 @@ function toggleShare(resume) {
   setShareUI(); if (!resume) toast('내 위치가 일행에게 공유돼요 📍 끄려면 일행 탭 스위치');
 }
 $('share').onclick = () => toggleShare();
+// 내 위치 점: 공유 여부·에버랜드 안팎과 상관없이 내 화면에만 항상 표시(보내지 않음). 2026-11-21 대표님: "지도에 내 위치 표시가 안되는듯"
+let myDot = null, myRing = null, myFirst = true;
+if (navigator.geolocation) navigator.geolocation.watchPosition(pos => {
+  const ll = [pos.coords.latitude, pos.coords.longitude], acc = Math.min(pos.coords.accuracy || 30, 200);
+  if (!myDot) {
+    myRing = L.circle(ll, { radius: acc, color:'#2f80ff', weight:1, fillColor:'#2f80ff', fillOpacity:.12, interactive:false }).addTo(map);
+    myDot = L.circleMarker(ll, { radius:8, color:'#fff', weight:3, fillColor:'#2f80ff', fillOpacity:1 }).addTo(map).bindTooltip('나', { direction:'top' });
+  } else { myDot.setLatLng(ll); myRing.setLatLng(ll).setRadius(acc); }
+  if (myFirst && near(ll[0], ll[1])) { myFirst = false; map.flyTo(ll, 17, { duration:.8 }); }
+}, () => toast('위치 권한을 허용하면 지도에 내 위치가 보여요'), { enableHighAccuracy:true, maximumAge:10000 });
 // 다시 열었을 때: 전에 켜 두었으면 자동으로 이어서 공유
 // 기본값은 공유 켜짐(2026-11-20 대표님: '기본값은 위치 켜기임'). 직접 끈 사람만 꺼진 채로 둔다. 이름이 없으면 일행 탭을 열어 이름부터 고르게 한다
 if (TOPIC) { if (!me) setTimeout(() => openTab('crewtab'), 600); else if (localStorage.getItem('sharing') !== '0') toggleShare(true); }
@@ -359,6 +370,7 @@ $('meet').onclick = () => {
   const c = map.getCenter();
   if (confirm('지도 가운데를 모임장소로 찍어 일행에게 알릴까요?')) { const p = { type:'meet', name: me || '누군가', lat:+c.lat.toFixed(5), lon:+c.lng.toFixed(5), t: Date.now() }; upsert(p); send(p); }
 };
+$('locate').onclick = () => myDot ? map.flyTo(myDot.getLatLng(), 18, { duration:.7 }) : toast('위치를 찾는 중이에요… 권한을 허용해 주세요');
 $('fit').onclick = () => { const pts = Object.values(people).map(p => [p.lat,p.lon]); pts.length ? map.flyToBounds(pts, { padding:[90,90], maxZoom:17 }) : (map.flyTo([37.2918,127.2025],16), toast('아직 공유 중인 일행이 없어요')); };
 </script>
 </body>
