@@ -293,7 +293,9 @@ const isOn = p => !!p && !p.off && !!p.lat && (admin || near(p.lat, p.lon)) && D
 const crewTabOpen = () => $('sheet').classList.contains('open') && document.querySelector('.tabs .on')?.dataset.t === 'crewtab';
 function renderCrew() {
   const list = Object.values(people).filter(isOn).sort((a,b)=>b.t-a.t);
-  $('crew').innerHTML = list.map(p => `<div class="p glass" data-n="${p.name}"><i style="background:${hue(p.name)}">${p.name.slice(0,1)}</i>${p.name}<small>${ago(p.t)}</small></div>`).join('');
+  const myP = typeof myDot !== 'undefined' && myDot ? [myDot.getLatLng().lat, myDot.getLatLng().lng] : null;
+  const walk = p => { if (!myP || p.name === me) return ago(p.t); const d = Math.hypot((p.lat - myP[0]) * 111000, (p.lon - myP[1]) * 88300); return (d < 1000 ? Math.round(d) + 'm' : (d / 1000).toFixed(1) + 'km') + ' · ' + Math.max(1, Math.round(d / 70)) + '분'; };
+  $('crew').innerHTML = list.map(p => `<div class="p glass" data-n="${p.name}"><i style="background:${hue(p.name)}">${p.name.slice(0,1)}</i>${p.name}<small>${walk(p)}</small></div>`).join('');
   $('crew').querySelectorAll('.p').forEach(e => e.onclick = () => { const p = people[e.dataset.n]; map.flyTo([p.lat,p.lon], 18, { duration:.7 }); });
   for (const n in marks) if (!isOn(people[n])) { map.removeLayer(marks[n]); delete marks[n]; }
   if (crewTabOpen()) renderCrewTab();
@@ -306,7 +308,9 @@ function renderCrewTab() {
       ${me ? `<button class="st" id="rename">이름 변경</button>` : ''}<button class="sw ${sharing ? 'on' : ''}" id="sw" aria-label="위치 공유 켜기/끄기"></button></div>
     ${me ? '' : `<div class="pick">${MEMBERS.map(n => `<button data-pick="${n}">${n}</button>`).join('')}<button data-pick="">직접 입력</button></div>`}` +
     names.map(n => { const p = people[n], on = isOn(p);
-      const sub = on ? '마지막 위치 ' + ago(p.t) : p ? (p.away ? '에버랜드 밖 · ' + ago(p.t) : p.off ? '공유 끔 · ' + ago(p.t) : '위치 오래됨 · ' + ago(p.t)) : '아직 공유 안 함';
+      const myP = myDot ? [myDot.getLatLng().lat, myDot.getLatLng().lng] : null;
+      const far = on && myP && n !== me ? (() => { const d = Math.hypot((p.lat - myP[0]) * 111000, (p.lon - myP[1]) * 88300); return ` · 나에게서 ${d < 1000 ? Math.round(d) + 'm' : (d / 1000).toFixed(1) + 'km'}(걸어서 ${Math.max(1, Math.round(d / 70))}분)`; })() : '';
+      const sub = on ? '마지막 위치 ' + ago(p.t) + far : p ? (p.away ? '에버랜드 밖 · ' + ago(p.t) : p.off ? '공유 끔 · ' + ago(p.t) : '위치 오래됨 · ' + ago(p.t)) : '아직 공유 안 함';
       return `<div class="mem ${on ? '' : 'off'}" data-n="${n}"><i style="background:${hue(n)}">${n.slice(0,1)}</i>
         <div class="nm">${n}${n === me ? ' (나)' : ''}<small>${sub}</small></div>
         <span class="st ${on ? 'on' : ''}">${on ? '● 공유 중' : '꺼짐'}</span></div>`; }).join('');
@@ -380,15 +384,35 @@ $('locate').onclick = () => myDot ? map.flyTo(myDot.getLatLng(), 18, { duration:
 $('fit').onclick = () => { const pts = Object.values(people).map(p => [p.lat,p.lon]); pts.length ? map.flyToBounds(pts, { padding:[90,90], maxZoom:17 }) : (map.flyTo([37.2918,127.2025],16), toast('아직 공유 중인 일행이 없어요')); };
 
 // ── 먹고쉬기 + 길안내 ─────────────────────────────────────────────
+// 구역 위치(대략): 공식 지도 구역 기준. 정확한 매장 위치는 아님
+const Z = { 글로벌페어:[37.2936,127.2046], 유러피안:[37.2907,127.2040], 매직랜드:[37.2926,127.1994], 아메리칸:[37.2930,127.2012], 주토피아:[37.2921,127.2064] };
+const jit = (z, i) => [Z[z][0] + ((i * 37) % 9 - 4) * 0.00012, Z[z][1] + ((i * 53) % 9 - 4) * 0.00016];
 const PLACES = [
-  { n:'KFC', k:'🍗', t:'치킨·버거', pos:[37.29267,127.20152] },
+  // 식사(공식 '레스토랑' 중 식사 매장) — 시간은 10/28(수) 공식 기준
+  { n:'포메인', k:'🍜', t:'쌀국수·볶음밥 · 1.3만~', h:'10:00~21:30', z:'유러피안', i:1 },
+  { n:'차이나문', k:'🥟', t:'자장면·짬뽕 · 1.4만', h:'11:30~20:40', z:'유러피안', i:2 },
+  { n:'매직타임 레스토랑', k:'🍲', t:'한식·중식 · 1.6만~', h:'11:30~20:30', z:'유러피안', i:3 },
+  { n:'버거카페 유럽', k:'🍔', t:'버거 세트 · 1.4만~', h:'11:30~20:00', z:'유러피안', i:4 },
+  { n:'슬로우야드 바베큐', k:'🍖', t:'바비큐 플래터 · 4.2만~', h:'12:00~21:00', z:'유러피안', i:5 },
+  { n:'가든 테라스', k:'🍛', t:'카레·폭립 · 1.4만~', h:'11:30~20:15', z:'유러피안', i:6 },
+  { n:'알파인 레스토랑', k:'🍚', t:'김치찌개 반상·돈가스 · 1.9만~', h:'11:30~17:30', z:'유러피안', i:7 },
+  { n:'알프스 쿠체', k:'🍢', t:'우동·돈가스커리 · 1.5만~', h:'11:30~19:00', z:'유러피안', i:8 },
+  { n:'홀랜드 빌리지', k:'🍕', t:'피자 콤보 · 2.9만', h:'12:00~21:50', z:'유러피안', i:9 },
+  { n:'시마스시', k:'🍣', t:'회전초밥 · 접시 5천', h:'11:00~21:00', z:'글로벌페어', i:1 },
+  { n:'오리엔탈 스테이션', k:'🍜', t:'우동·라멘 · 1.3만~', h:'12:10~21:00', z:'글로벌페어', i:2 },
+  { n:'온더보더', k:'🌮', t:'타코·화이타 · 6.5천~', h:'10:30~21:00', z:'글로벌페어', i:3 },
+  { n:'한와담 소반', k:'🥘', t:'불고기·만두전골 · 2.1만~', h:'11:00~20:30', z:'글로벌페어', i:4 },
+  { n:'맘스터치', k:'🍔', t:'싸이버거 · 6.9천~', h:'10:30~22:00', z:'매직랜드', i:1 },
+  { n:'타운즈 마켓 레스토랑', k:'🍱', t:'소바·정식 · 1.7만~', h:'11:30~19:00', z:'매직랜드', i:2 },
+  { n:'카페 정글캠프', k:'🥩', t:'스테이크 콤보 · 3.6만~', h:'11:00~19:30', z:'주토피아', i:1 },
+  { n:'KFC', k:'🍗', t:'치킨·버거 · 3천~', h:'10:30~22:00', pos:[37.29267,127.20152] },
+  // 간식·편의
   { n:'씨제이 핫도그·팝콘', k:'🌭', t:'간식', pos:[37.29303,127.20162] },
   { n:'앤티앤스 프레즐', k:'🥨', t:'간식', pos:[37.29151,127.20031] },
-  { n:'중식당', k:'🥟', t:'중식', pos:[37.2916,127.20007] },
-  { n:'CU 편의점', k:'🏪', t:'편의점·핫팩', pos:[37.29427,127.205] },
-  { n:'화장실(글로벌페어 쪽)', k:'🚻', t:'화장실', pos:[37.29068,127.20325] },
+  { n:'CU 편의점', k:'🏪', t:'편의점·핫팩·음료', pos:[37.29427,127.205] },
+  { n:'화장실(포시즌스가든 쪽)', k:'🚻', t:'화장실', pos:[37.29068,127.20325] },
   { n:'화장실(주토피아 쪽)', k:'🚻', t:'화장실', pos:[37.29339,127.20661] },
-];
+].map(p => p.pos ? p : { ...p, pos: jit(p.z, p.i), approx: true });
 const placeLayer = L.layerGroup().addTo(map);
 PLACES.forEach(pl => L.marker(pl.pos, { icon: L.divIcon({ className:'', html:`<div class="pin" style="--c:#9aa4b2"><b style="color:#fff">${pl.k}</b><span>${pl.n}</span></div>`, iconSize:[0,0] }) })
   .on('click', () => startNav(pl)).addTo(placeLayer));
@@ -418,10 +442,10 @@ function renderEat() {
   const me = myLL();
   const list = PLACES.map(pl => ({ ...pl, db: me ? distBear(me, pl.pos) : null })).sort((a, b) => (a.db?.d ?? 0) - (b.db?.d ?? 0));
   $('sheetBody').innerHTML = `<h2>먹고쉬기</h2><p class="lead">${me ? '가까운 순 · 길안내를 누르면 화살표로 데려가요' : '위치를 허용하면 가까운 순으로 보여요'}</p>` +
-    list.map(pl => `<div class="place"><div class="ic">${pl.k}</div><div class="nm">${pl.n}<small>${pl.t}</small></div>
+    list.map(pl => `<div class="place"><div class="ic">${pl.k}</div><div class="nm">${pl.n}<small>${pl.t}${pl.h ? ' · ' + pl.h : ''}${pl.approx ? ' · 구역 위치(대략)' : ''}</small></div>
       ${pl.db ? `<div class="dir"><b style="transform:rotate(${pl.db.b - (heading ?? 0)}deg)">⬆</b><small>${fmtD(pl.db.d)}</small></div>` : ''}
       <button class="navgo" data-n="${pl.n}">길안내</button></div>`).join('') +
-    `<p class="note">지도에 위치가 확인된 곳만 넣었어요. 식당 운영·메뉴는 에버랜드 앱에서 확인하세요. 화살표는 직선 방향이라 길을 따라 조금 돌아갈 수 있어요.</p>`;
+    `<p class="note">식당 목록·시간은 에버랜드 공식 매장 정보(10/28 기준)예요. 그날 쉬던 쿠치나 마리오·한가람은 뺐어요. 오늘(21일) 운영·라스트오더는 에버랜드 앱에서 한 번 더 확인하세요. '구역 위치(대략)'은 구역 한가운데로 안내해요. 화살표는 직선 방향이라 길 따라 조금 돌아갈 수 있어요.</p>`;
   $('sheetBody').querySelectorAll('.navgo').forEach(b => b.onclick = () => startNav(PLACES.find(p => p.n === b.dataset.n)));
 }
 let navTarget = null, navLine = null;
