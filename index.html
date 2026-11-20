@@ -181,6 +181,16 @@ const toast = t => { const e = $('toast'); e.textContent = t; e.classList.add('s
 
 // 지도(밝은 길이 잘 보이는 어두운 바탕 지도)
 const map = L.map('map', { zoomControl:false, attributionControl:true }).setView([37.2918, 127.2025], 16);
+// 일반 멤버는 에버랜드 주변만 볼 수 있게 지도를 묶는다. 개발자(마크)는 링크에 관리 키(&k=…)를 붙이면 묶지 않는다(2026-11-20 대표님 요청)
+const ADMIN_H = '27eb33c4e98465f1f9f06bdddb308442a8ac59ca8a4d95c5d24741d86ca25b0e';
+(async () => {
+  const k = (location.hash.match(/k=([\w-]+)/) || [])[1] || localStorage.getItem('k');
+  let admin = false;
+  if (k && crypto.subtle) { const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(k)); admin = [...new Uint8Array(d)].map(b => b.toString(16).padStart(2,'0')).join('') === ADMIN_H; }
+  if (admin) { localStorage.setItem('k', k); return; }
+  const B = L.latLngBounds([37.280, 127.188], [37.303, 127.218]);
+  map.setMaxBounds(B.pad(0.05)); map.setMinZoom(15); map.options.maxBoundsViscosity = 1.0;
+})();
 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:19, attribution:'© OpenStreetMap' }).addTo(map);
 const pinLayer = L.layerGroup().addTo(map);
 function drawPins() {
