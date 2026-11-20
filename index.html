@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
 <meta name="theme-color" content="#0d1117">
-<title>EVERLAND 11.21 · 공포지수 지도</title>
-<meta property="og:title" content="EVERLAND 11.21 · 공포지수 지도">
+<title>원직모 에버랜드 위치공유 맵</title>
+<meta property="og:title" content="원직모 에버랜드 위치공유 맵">
 <meta property="og:description" content="놀이기구 공포지수 0~10 · 지도 · 일행 실시간 위치">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
@@ -116,6 +116,20 @@ button { font-family:inherit; color:inherit; cursor:pointer; }
 .sw.on { background:var(--cool); } .sw.on::after { left:28px; }
 .pick { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:0 0 14px; }
 .pick button { border:1px solid var(--edge); background:var(--glass2); border-radius:14px; padding:12px 4px; font-size:14px; font-weight:800; }
+
+.place { display:flex; align-items:center; gap:12px; padding:13px 14px; border-radius:16px; margin-bottom:8px; background:linear-gradient(135deg, rgba(255,255,255,.07), rgba(255,255,255,.025)); border:1px solid var(--edge); }
+.place .ic { width:40px; height:40px; border-radius:12px; background:var(--glass2); display:flex; align-items:center; justify-content:center; font-size:20px; flex:none; }
+.place .nm { flex:1; font-size:16px; font-weight:800; } .place .nm small { display:block; font-size:12px; color:var(--mute); font-weight:600; margin-top:1px; }
+.place .dir { text-align:center; min-width:54px; } .place .dir b { display:block; font-size:20px; line-height:1; transition:transform .3s; }
+.place .dir small { font-size:11.5px; color:var(--mute); font-weight:700; }
+.navgo { border:0; border-radius:12px; padding:9px 12px; font-size:13px; font-weight:800; color:#fff; background:linear-gradient(135deg,#2f80ff,#5a5cff); }
+.navbar { position:fixed; left:10px; right:10px; top:calc(84px + env(safe-area-inset-top,0px)); z-index:650; border-radius:22px; padding:12px 14px; display:none; align-items:center; gap:14px; }
+.navbar.on { display:flex; }
+.navbar .arrow { width:64px; height:64px; border-radius:50%; background:linear-gradient(135deg,#2f80ff,#5a5cff); display:flex; align-items:center; justify-content:center; flex:none; box-shadow:0 8px 20px rgba(47,128,255,.45); }
+.navbar .arrow svg { width:34px; height:34px; transition:transform .25s; }
+.navbar .info { flex:1; } .navbar .info b { display:block; font-size:24px; font-weight:900; letter-spacing:-.02em; } .navbar .info small { color:var(--mute); font-size:13px; font-weight:700; }
+.navbar .x { border:1px solid var(--edge); background:var(--glass2); border-radius:12px; padding:8px 11px; font-size:13px; font-weight:800; }
+.navbar .cmp { display:block; font-size:11.5px; color:var(--mute); margin-top:2px; }
 .toast { position:fixed; left:50%; top:calc(140px + env(safe-area-inset-top,0px)); transform:translateX(-50%) translateY(-20px); opacity:0; z-index:900; border-radius:14px; padding:10px 16px; font-size:14px; font-weight:700; transition:.3s; pointer-events:none; }
 .toast.show { opacity:1; transform:translateX(-50%); }
 </style>
@@ -124,7 +138,7 @@ button { font-family:inherit; color:inherit; cursor:pointer; }
 <div id="map"></div>
 
 <div class="top">
-  <div class="brand glass"><b>EVERLAND · 11.21</b><span>공포지수 지도 🎢</span></div>
+  <div class="brand glass"><b>EVERLAND · 11.21</b><span>원직모 에버랜드 위치공유 맵</span></div>
   <div class="wxchip glass" id="wxchip"><b>--°</b><small>지금 기온</small></div>
 </div>
 <div class="crew" id="crew"></div>
@@ -141,10 +155,11 @@ button { font-family:inherit; color:inherit; cursor:pointer; }
 <nav class="tabs glass">
   <button data-t="map" class="on"><span>🗺️</span>지도</button>
   <button data-t="rides"><span>🎢</span>공포지수</button>
-  <button data-t="course"><span>🧭</span>코스</button>
+  <button data-t="eat"><span>🍔</span>먹고쉬기</button>
   <button data-t="crewtab"><span>👥</span>일행</button>
   <button data-t="tips"><span>🌡️</span>날씨</button>
 </nav>
+<div class="navbar glass" id="navbar"><div class="arrow" id="navArrow"><svg viewBox="0 0 24 24" fill="#fff"><path d="M12 2l7 18-7-4-7 4z"/></svg></div><div class="info"><small id="navTo"></small><b id="navDist"></b><span class="cmp" id="navCmp"></span></div><button class="x" id="navX">종료</button></div>
 <div class="toast glass" id="toast"></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -214,7 +229,7 @@ const tabs = document.querySelectorAll('.tabs button');
 function openTab(t) {
   tabs.forEach(b => b.classList.toggle('on', b.dataset.t === t));
   if (t === 'map') { $('sheet').classList.remove('open'); return; }
-  ({ rides: renderRides, course: renderCourse, tips: renderTips, crewtab: renderCrewTab })[t]();
+  ({ rides: renderRides, eat: renderEat, tips: renderTips, crewtab: renderCrewTab })[t]();
   $('sheet').classList.add('open'); $('sheetBody').scrollTop = 0;
 }
 tabs.forEach(b => b.onclick = () => openTab(b.dataset.t));
@@ -242,15 +257,6 @@ function renderRides() {
   $('sheetBody').querySelectorAll('.chips button').forEach(b => b.onclick = () => { fi = +b.dataset.i; renderRides(); });
   $('sheetBody').querySelectorAll('.done').forEach(b => b.onclick = () => { rode.has(b.dataset.n) ? rode.delete(b.dataset.n) : (rode.add(b.dataset.n), toast(`${b.dataset.n} 클리어 🎉`)); localStorage.setItem('rode', JSON.stringify([...rode])); renderRides(); });
   $('sheetBody').querySelectorAll('.go').forEach(b => b.onclick = () => { const r = RIDES.find(x => x.n === b.dataset.go); openTab('map'); map.flyTo(r.pos, 18, { duration:.8 }); });
-}
-
-function renderCourse() {
-  const c = (t, m, steps) => `<div class="card"><h3>${t}</h3><div class="max">${m}</div><ol class="steps">${steps.map(s=>`<li>${s}</li>`).join('')}</ol></div>`;
-  $('sheetBody').innerHTML = `<h2>추천 코스</h2><p class="lead">오늘 컨디션에 맞춰 골라요</p>` +
-    c('🐣 쫄보 코스', '최고 공포 3.5', ['회전목마에서 인생샷', '사파리월드 → 로스트밸리', '스카이크루즈로 이동하며 경치', '매직랜드: 피터팬 · 플래시팡팡 · 스카이댄싱', '범퍼카로 마무리']) +
-    c('😎 보통 코스', '최고 공포 7.0', ['오픈런 사파리월드(대기 짧을 때)', '콜럼버스 대탐험 → 렛츠트위스트 → 허리케인', '아마존 익스프레스(우비, 낮 따뜻할 때)', '저녁 퍼레이드·회전목마']) +
-    c('🔥 강심장 코스', '최고 공포 9.6', ['오픈 직후 T익스프레스 직행', '롤링엑스트레인 → 더블락스핀 → 허리케인', '썬더폴스(가장 따뜻한 시간)', '휴먼스카이(유료) or 블러드시티(호러)']) +
-    `<p class="note">대기 줄이기: 오픈 직후 인기 기구 먼저 · 점심(12~13시)과 퍼레이드 시간에 인기 기구 · 공식 앱 스마트 줄서기 확인</p>`;
 }
 
 let WX = null;
@@ -372,6 +378,75 @@ $('meet').onclick = () => {
 };
 $('locate').onclick = () => myDot ? map.flyTo(myDot.getLatLng(), 18, { duration:.7 }) : toast('위치를 찾는 중이에요… 권한을 허용해 주세요');
 $('fit').onclick = () => { const pts = Object.values(people).map(p => [p.lat,p.lon]); pts.length ? map.flyToBounds(pts, { padding:[90,90], maxZoom:17 }) : (map.flyTo([37.2918,127.2025],16), toast('아직 공유 중인 일행이 없어요')); };
+
+// ── 먹고쉬기 + 길안내 ─────────────────────────────────────────────
+const PLACES = [
+  { n:'KFC', k:'🍗', t:'치킨·버거', pos:[37.29267,127.20152] },
+  { n:'씨제이 핫도그·팝콘', k:'🌭', t:'간식', pos:[37.29303,127.20162] },
+  { n:'앤티앤스 프레즐', k:'🥨', t:'간식', pos:[37.29151,127.20031] },
+  { n:'중식당', k:'🥟', t:'중식', pos:[37.2916,127.20007] },
+  { n:'CU 편의점', k:'🏪', t:'편의점·핫팩', pos:[37.29427,127.205] },
+  { n:'화장실(글로벌페어 쪽)', k:'🚻', t:'화장실', pos:[37.29068,127.20325] },
+  { n:'화장실(주토피아 쪽)', k:'🚻', t:'화장실', pos:[37.29339,127.20661] },
+];
+const placeLayer = L.layerGroup().addTo(map);
+PLACES.forEach(pl => L.marker(pl.pos, { icon: L.divIcon({ className:'', html:`<div class="pin" style="--c:#9aa4b2"><b style="color:#fff">${pl.k}</b><span>${pl.n}</span></div>`, iconSize:[0,0] }) })
+  .on('click', () => startNav(pl)).addTo(placeLayer));
+const R = 6371000, rad = d => d * Math.PI / 180;
+function distBear(a, b) {
+  const [la1, lo1] = a.map(rad), [la2, lo2] = b.map(rad);
+  const d = 2 * R * Math.asin(Math.sqrt(Math.sin((la2-la1)/2)**2 + Math.cos(la1)*Math.cos(la2)*Math.sin((lo2-lo1)/2)**2));
+  const y = Math.sin(lo2-lo1) * Math.cos(la2), x = Math.cos(la1)*Math.sin(la2) - Math.sin(la1)*Math.cos(la2)*Math.cos(lo2-lo1);
+  return { d, b: (Math.atan2(y, x) * 180 / Math.PI + 360) % 360 };
+}
+const fmtD = d => d < 1000 ? Math.round(d) + 'm' : (d / 1000).toFixed(1) + 'km';
+const myLL = () => myDot ? [myDot.getLatLng().lat, myDot.getLatLng().lng] : null;
+let heading = null;   // 폰이 향한 방향(나침반). 있으면 화살표를 폰 기준으로 돌린다
+function onOrient(e) {
+  const h = e.webkitCompassHeading ?? (e.absolute && e.alpha != null ? 360 - e.alpha : null);
+  if (h != null) { heading = h; updateNav(); }
+}
+async function enableCompass() {
+  try {
+    if (typeof DeviceOrientationEvent !== 'undefined' && DeviceOrientationEvent.requestPermission) {
+      if (await DeviceOrientationEvent.requestPermission() !== 'granted') return;
+      addEventListener('deviceorientation', onOrient);
+    } else addEventListener('deviceorientationabsolute', onOrient);
+  } catch {}
+}
+function renderEat() {
+  const me = myLL();
+  const list = PLACES.map(pl => ({ ...pl, db: me ? distBear(me, pl.pos) : null })).sort((a, b) => (a.db?.d ?? 0) - (b.db?.d ?? 0));
+  $('sheetBody').innerHTML = `<h2>먹고쉬기</h2><p class="lead">${me ? '가까운 순 · 길안내를 누르면 화살표로 데려가요' : '위치를 허용하면 가까운 순으로 보여요'}</p>` +
+    list.map(pl => `<div class="place"><div class="ic">${pl.k}</div><div class="nm">${pl.n}<small>${pl.t}</small></div>
+      ${pl.db ? `<div class="dir"><b style="transform:rotate(${pl.db.b - (heading ?? 0)}deg)">⬆</b><small>${fmtD(pl.db.d)}</small></div>` : ''}
+      <button class="navgo" data-n="${pl.n}">길안내</button></div>`).join('') +
+    `<p class="note">지도에 위치가 확인된 곳만 넣었어요. 식당 운영·메뉴는 에버랜드 앱에서 확인하세요. 화살표는 직선 방향이라 길을 따라 조금 돌아갈 수 있어요.</p>`;
+  $('sheetBody').querySelectorAll('.navgo').forEach(b => b.onclick = () => startNav(PLACES.find(p => p.n === b.dataset.n)));
+}
+let navTarget = null, navLine = null;
+function startNav(pl) {
+  if (!myLL()) return toast('내 위치를 찾는 중이에요… 위치 권한을 허용해 주세요');
+  navTarget = pl; enableCompass(); openTab('map');
+  $('navbar').classList.add('on'); $('crew').style.display = 'none';
+  updateNav();
+  map.flyToBounds([myLL(), pl.pos], { padding:[120,120], maxZoom:18 });
+}
+function updateNav() {
+  if (!navTarget || !myLL()) return;
+  const me = myLL(), { d, b } = distBear(me, navTarget.pos);
+  if (navLine) navLine.setLatLngs([me, navTarget.pos]);
+  else navLine = L.polyline([me, navTarget.pos], { color:'#2f80ff', weight:5, dashArray:'2 10', lineCap:'round' }).addTo(map);
+  $('navTo').textContent = `${navTarget.k} ${navTarget.n}까지`;
+  if (d < 25) { $('navDist').textContent = '도착! 🎉'; $('navCmp').textContent = ''; $('navArrow').querySelector('svg').style.transform = 'none'; return; }
+  $('navDist').textContent = fmtD(d) + ' · 걸어서 ' + Math.max(1, Math.round(d / 70)) + '분';
+  const rot = heading == null ? b : b - heading;
+  $('navArrow').querySelector('svg').style.transform = `rotate(${rot}deg)`;
+  $('navCmp').textContent = heading == null ? '화살표 위 = 지도 위쪽(북). 폰을 돌리면 맞춰지게 하려면 화살표를 눌러 나침반 허용' : '폰이 향한 방향 기준 화살표';
+}
+$('navArrow').onclick = enableCompass;
+$('navX').onclick = () => { navTarget = null; $('navbar').classList.remove('on'); $('crew').style.display = ''; if (navLine) { map.removeLayer(navLine); navLine = null; } };
+setInterval(updateNav, 2000);
 </script>
 </body>
 </html>
