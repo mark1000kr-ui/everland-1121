@@ -265,9 +265,12 @@ const hue = n => HUES[[...n].reduce((a,c)=>a+c.charCodeAt(0),0) % HUES.length];
 // 단톡방 참여자 12명(2026-11-20 대표님 캡처). 여기 없는 이름도 '직접 입력'으로 참여 가능
 const MEMBERS = ['마크','피치','가을','겨울','돌돌','디그','곰돌','방가','뿜뿜','안뇽','춘상','팝콘'];
 const people = {}, marks = {}; let meetMark = null, me = localStorage.getItem('name') || '';
-let watchId = null, last = 0, sharing = false;
+let watchId = null, last = 0, sharing = false, awayNoted = false;
 const ago = t => { const m = Math.max(0, Math.round((Date.now() - t) / 60000)); return m < 1 ? '방금' : m < 60 ? m + '분 전' : Math.floor(m / 60) + '시간 전'; };
-const isOn = p => !!p && !p.off && !!p.lat && Date.now() - p.t < 20 * 60000;   // 20분 넘게 소식 없으면 꺼진 걸로
+// 에버랜드 반경 2km 안에서만 공유·표시(2026-11-20 대표님: "원주 우리집 노출되는디") — 집·이동 중 위치는 보내지도 그리지도 않는다
+const EV = [37.2918, 127.2025];
+const near = (lat, lon) => { const dy = (lat - EV[0]) * 111000, dx = (lon - EV[1]) * 88300; return Math.hypot(dx, dy) < 2000; };
+const isOn = p => !!p && !p.off && !!p.lat && near(p.lat, p.lon) && Date.now() - p.t < 20 * 60000;   // 20분 넘게 소식 없으면 꺼진 걸로
 const crewTabOpen = () => $('sheet').classList.contains('open') && document.querySelector('.tabs .on')?.dataset.t === 'crewtab';
 function renderCrew() {
   const list = Object.values(people).filter(isOn).sort((a,b)=>b.t-a.t);
@@ -280,11 +283,11 @@ function renderCrewTab() {
   const names = [...new Set([...MEMBERS, ...Object.keys(people)])];
   const onCount = names.filter(n => isOn(people[n])).length;
   $('sheetBody').innerHTML = `<h2>일행</h2><p class="lead">${names.length}명 중 <b style="color:var(--cool)">${onCount}명</b> 위치 공유 중 · 공유 중인 사람을 누르면 지도에서 찾아가요</p>
-    <div class="me-row"><div class="nm">${me ? `나: ${me}` : '먼저 내 이름을 골라 주세요'}<small>${sharing ? '켜짐 · 일행 지도에 내 위치가 보여요' : '꺼짐 · 스위치를 켜면 일행 지도에 표시돼요'}</small></div>
+    <div class="me-row"><div class="nm">${me ? `나: ${me}` : '먼저 내 이름을 골라 주세요'}<small>${sharing ? '켜짐 · 에버랜드 2km 안에서만 일행 지도에 보여요' : '꺼짐 · 스위치를 켜면 일행 지도에 표시돼요'}</small></div>
       ${me ? `<button class="st" id="rename">이름 변경</button>` : ''}<button class="sw ${sharing ? 'on' : ''}" id="sw" aria-label="위치 공유 켜기/끄기"></button></div>
     ${me ? '' : `<div class="pick">${MEMBERS.map(n => `<button data-pick="${n}">${n}</button>`).join('')}<button data-pick="">직접 입력</button></div>`}` +
     names.map(n => { const p = people[n], on = isOn(p);
-      const sub = on ? '마지막 위치 ' + ago(p.t) : p ? (p.off ? '공유 끔 · ' + ago(p.t) : '위치 오래됨 · ' + ago(p.t)) : '아직 공유 안 함';
+      const sub = on ? '마지막 위치 ' + ago(p.t) : p ? (p.away ? '에버랜드 밖 · ' + ago(p.t) : p.off ? '공유 끔 · ' + ago(p.t) : '위치 오래됨 · ' + ago(p.t)) : '아직 공유 안 함';
       return `<div class="mem ${on ? '' : 'off'}" data-n="${n}"><i style="background:${hue(n)}">${n.slice(0,1)}</i>
         <div class="nm">${n}${n === me ? ' (나)' : ''}<small>${sub}</small></div>
         <span class="st ${on ? 'on' : ''}">${on ? '● 공유 중' : '꺼짐'}</span></div>`; }).join('');
@@ -327,7 +330,11 @@ function toggleShare(resume) {
   sharing = true; last = 0; localStorage.setItem('sharing', '1');
   watchId = navigator.geolocation.watchPosition(pos => {
     const p = { name: me, lat:+pos.coords.latitude.toFixed(5), lon:+pos.coords.longitude.toFixed(5), t: Date.now() };
-    upsert(p); if (Date.now() - last > 30000) { last = Date.now(); send(p); }
+    if (!near(p.lat, p.lon)) {   // 에버랜드 밖: 위치는 안 보내고 '밖'이라고만 알림(한 번)
+      if (!awayNoted) { awayNoted = true; const o = { name: me, off: true, away: true, t: Date.now() }; upsert(o); send(o); toast('에버랜드 근처(2km)에 오면 자동으로 공유돼요 🙈'); }
+      return;
+    }
+    awayNoted = false; upsert(p); if (Date.now() - last > 30000) { last = Date.now(); send(p); }
   }, () => { toast('위치 권한을 허용해 주세요'); sharing = false; localStorage.setItem('sharing', '0'); setShareUI(); }, { enableHighAccuracy:true, maximumAge:15000 });
   setShareUI(); if (!resume) toast('일행에게 내 위치가 보여요 📍');
 }
