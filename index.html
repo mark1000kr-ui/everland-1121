@@ -2,79 +2,131 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>에버랜드 11/21 · 공포지수 지도</title>
-<meta property="og:title" content="에버랜드 11/21 · 공포지수 지도">
-<meta property="og:description" content="놀이기구 공포지수 0~10 · 지도 · 실시간 일행 위치">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="theme-color" content="#0d1117">
+<title>EVERLAND 11.21 · 공포지수 지도</title>
+<meta property="og:title" content="EVERLAND 11.21 · 공포지수 지도">
+<meta property="og:description" content="놀이기구 공포지수 0~10 · 지도 · 일행 실시간 위치">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <style>
-:root { --ink:#1b1b1f; --mute:#6b6b74; --line:#e6e6ea; --bg:#f6f6f8; --brand:#2f6b3a; }
-* { box-sizing:border-box; }
-body { margin:0; font-family:-apple-system,"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif; color:var(--ink); background:var(--bg); -webkit-tap-highlight-color:transparent; }
-header { padding:16px 16px 10px; background:#fff; border-bottom:1px solid var(--line); }
-h1 { font-size:20px; margin:0; letter-spacing:-0.02em; }
-.sub { font-size:13px; color:var(--mute); margin-top:3px; }
-nav { display:flex; gap:6px; padding:10px 12px; background:#fff; position:sticky; top:0; z-index:1000; border-bottom:1px solid var(--line); overflow-x:auto; }
-nav button { flex:none; border:1px solid var(--line); background:#fff; border-radius:999px; padding:7px 14px; font-size:14px; font-weight:600; color:var(--ink); }
-nav button.on { background:var(--ink); color:#fff; border-color:var(--ink); }
-section { display:none; } section.on { display:block; }
-#map { height:62vh; }
-.bar { display:flex; gap:8px; padding:10px 12px; flex-wrap:wrap; align-items:center; background:#fff; border-bottom:1px solid var(--line); }
-.bar button, .btn { border:1px solid var(--line); background:#fff; border-radius:10px; padding:8px 12px; font-size:14px; font-weight:600; }
-.btn.pri { background:var(--brand); color:#fff; border-color:var(--brand); }
-.note { font-size:12.5px; color:var(--mute); padding:8px 14px; line-height:1.5; }
-.ppl { padding:6px 12px 14px; background:#fff; }
-.ppl div { display:flex; justify-content:space-between; font-size:14px; padding:6px 2px; border-bottom:1px solid var(--line); }
-.ppl small { color:var(--mute); }
-.list { padding:8px 12px 30px; }
-.filters { display:flex; gap:6px; padding:10px 12px; overflow-x:auto; }
-.filters button { flex:none; border:1px solid var(--line); background:#fff; border-radius:999px; padding:6px 12px; font-size:13px; }
-.filters button.on { background:#eef4ef; border-color:var(--brand); color:var(--brand); font-weight:700; }
-.card { background:#fff; border:1px solid var(--line); border-radius:14px; padding:12px 14px; margin-bottom:8px; display:grid; grid-template-columns:56px 1fr auto; gap:12px; align-items:center; }
-.score { width:56px; height:56px; border-radius:12px; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#fff; font-weight:800; font-size:20px; }
-.score small { font-size:10px; font-weight:600; opacity:.85; }
-.card h3 { margin:0; font-size:16px; } .card p { margin:3px 0 0; font-size:12.5px; color:var(--mute); line-height:1.45; }
-.tags span { display:inline-block; font-size:11px; border:1px solid var(--line); border-radius:6px; padding:1px 6px; margin:4px 4px 0 0; color:#444; }
-.done { width:30px; height:30px; border-radius:50%; border:2px solid var(--line); background:#fff; font-size:15px; }
-.card.rode { opacity:.55; } .card.rode .done { background:var(--brand); border-color:var(--brand); color:#fff; }
-.box { background:#fff; border:1px solid var(--line); border-radius:14px; padding:14px; margin:10px 12px; font-size:14.5px; line-height:1.6; }
-.box h2 { font-size:16px; margin:0 0 6px; }
-.box ol, .box ul { margin:4px 0; padding-left:20px; }
-.wx { display:flex; gap:10px; overflow-x:auto; }
-.wx div { flex:none; text-align:center; font-size:13px; border:1px solid var(--line); border-radius:10px; padding:6px 8px; min-width:58px; }
-.leaflet-tooltip.me { background:#1b1b1f; color:#fff; border:0; font-weight:700; }
+:root {
+  --bg:#0d1117; --glass:rgba(18,22,30,.62); --glass2:rgba(255,255,255,.08); --edge:rgba(255,255,255,.14);
+  --txt:#f4f5f7; --mute:#a3a9b6; --hot:#ff4d3d; --warm:#ff8a3d; --mid:#ffc43d; --cool:#3ddc97; --calm:#5aa9ff;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+}
+* { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html, body { margin:0; height:100%; background:var(--bg); color:var(--txt); font-family:"Pretendard Variable",Pretendard,-apple-system,"Apple SD Gothic Neo",sans-serif; overflow:hidden; }
+button { font-family:inherit; color:inherit; cursor:pointer; }
+#map { position:fixed; inset:0; z-index:0; background:#1a1f27; }
+.glass { background:var(--glass); backdrop-filter:blur(18px) saturate(140%); -webkit-backdrop-filter:blur(18px) saturate(140%); border:1px solid var(--edge); box-shadow:0 10px 30px rgba(0,0,0,.35); }
+
+/* 상단 */
+.top { position:fixed; top:calc(10px + env(safe-area-inset-top,0px)); left:10px; right:10px; z-index:500; display:flex; gap:8px; align-items:stretch; }
+.brand { flex:1; border-radius:20px; padding:10px 14px; display:flex; flex-direction:column; justify-content:center; }
+.brand b { font-size:12px; letter-spacing:.22em; color:var(--mute); font-weight:700; }
+.brand span { font-size:19px; font-weight:800; letter-spacing:-.02em; margin-top:1px; }
+.wxchip { border-radius:20px; padding:8px 12px; min-width:84px; text-align:center; display:flex; flex-direction:column; justify-content:center; }
+.wxchip b { font-size:22px; font-weight:800; line-height:1; } .wxchip small { font-size:11px; color:var(--mute); margin-top:3px; }
+.crew { position:fixed; top:calc(84px + env(safe-area-inset-top,0px)); left:10px; right:10px; z-index:500; display:flex; gap:6px; overflow-x:auto; scrollbar-width:none; }
+.crew::-webkit-scrollbar { display:none; }
+.crew .p { flex:none; border-radius:999px; padding:5px 10px 5px 5px; display:flex; align-items:center; gap:6px; font-size:13px; font-weight:700; }
+.crew .p i { width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-style:normal; font-size:11px; color:#0d1117; }
+.crew .p small { color:var(--mute); font-weight:500; }
+
+/* 지도 위 버튼 */
+.fabs { position:fixed; right:12px; bottom:calc(96px + var(--safe-b)); z-index:500; display:flex; flex-direction:column; gap:10px; }
+.fab { width:52px; height:52px; border-radius:18px; font-size:22px; display:flex; align-items:center; justify-content:center; border:1px solid var(--edge); }
+.fab.share { width:auto; padding:0 18px; font-size:15px; font-weight:800; gap:8px; background:linear-gradient(135deg,#ff6a3d,#ff3d6e); border:0; color:#fff; box-shadow:0 10px 26px rgba(255,61,110,.45); }
+.fab.share.live { background:linear-gradient(135deg,#1fd18b,#0fa3a3); box-shadow:0 10px 26px rgba(15,163,163,.5); }
+.fab.share .dot { width:9px; height:9px; border-radius:50%; background:#fff; }
+.fab.share.live .dot { animation:pulse 1.4s infinite; }
+@keyframes pulse { 0%{box-shadow:0 0 0 0 rgba(255,255,255,.8)} 100%{box-shadow:0 0 0 12px rgba(255,255,255,0)} }
+
+/* 아래 탭 */
+.tabs { position:fixed; left:10px; right:10px; bottom:calc(10px + var(--safe-b)); z-index:700; border-radius:24px; display:grid; grid-template-columns:repeat(4,1fr); padding:6px; }
+.tabs button { background:none; border:0; border-radius:18px; padding:8px 0 6px; display:flex; flex-direction:column; align-items:center; gap:2px; font-size:11.5px; font-weight:700; color:var(--mute); }
+.tabs button span { font-size:20px; filter:grayscale(.6); }
+.tabs button.on { background:var(--glass2); color:var(--txt); } .tabs button.on span { filter:none; }
+
+/* 시트 */
+.sheet { position:fixed; left:0; right:0; bottom:0; top:calc(70px + env(safe-area-inset-top,0px)); z-index:600; border-radius:28px 28px 0 0; transform:translateY(105%); transition:transform .38s cubic-bezier(.2,.8,.2,1); display:flex; flex-direction:column; background:rgba(13,17,23,.84); }
+.sheet.open { transform:none; }
+.sheet .grab { width:44px; height:5px; border-radius:3px; background:rgba(255,255,255,.25); margin:10px auto 4px; }
+.sheet .scroll { overflow-y:auto; padding:6px 14px calc(110px + var(--safe-b)); -webkit-overflow-scrolling:touch; }
+.sheet h2 { font-size:24px; font-weight:800; letter-spacing:-.03em; margin:8px 2px 4px; }
+.sheet .lead { color:var(--mute); font-size:13.5px; margin:0 2px 12px; line-height:1.5; }
+
+.chips { display:flex; gap:6px; overflow-x:auto; padding:2px 0 12px; scrollbar-width:none; }
+.chips::-webkit-scrollbar { display:none; }
+.chips button { flex:none; border:1px solid var(--edge); background:var(--glass2); border-radius:999px; padding:7px 13px; font-size:13px; font-weight:700; color:var(--mute); }
+.chips button.on { background:var(--txt); color:var(--bg); border-color:var(--txt); }
+
+.ride { position:relative; border-radius:20px; padding:14px 14px 14px 16px; margin-bottom:10px; background:linear-gradient(135deg, rgba(255,255,255,.07), rgba(255,255,255,.025)); border:1px solid var(--edge); overflow:hidden; }
+.ride::before { content:""; position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--c); }
+.ride .row { display:flex; align-items:flex-start; gap:12px; }
+.ride .nm { flex:1; } .ride h3 { margin:0; font-size:18px; font-weight:800; letter-spacing:-.02em; }
+.ride .zone { font-size:12px; color:var(--mute); margin-top:2px; }
+.ride .num { text-align:right; } .ride .num b { font-size:34px; font-weight:900; letter-spacing:-.04em; color:var(--c); line-height:1; font-variant-numeric:tabular-nums; }
+.ride .num small { display:block; font-size:11px; color:var(--mute); font-weight:700; margin-top:2px; }
+.meter { height:8px; border-radius:6px; background:rgba(255,255,255,.08); margin:10px 0 8px; overflow:hidden; }
+.meter i { display:block; height:100%; border-radius:6px; background:linear-gradient(90deg,#5aa9ff,#3ddc97 30%,#ffc43d 55%,#ff8a3d 72%,#ff4d3d); background-size:calc(100% * 10 / var(--s)) 100%; width:calc(var(--s) * 10%); }
+.ride p { margin:0; font-size:13.5px; color:#cfd3db; line-height:1.5; }
+.tags { margin-top:8px; display:flex; flex-wrap:wrap; gap:5px; }
+.tags span { font-size:11.5px; padding:3px 8px; border-radius:7px; background:rgba(255,255,255,.07); color:#d6d9e0; }
+.ride .done { position:absolute; right:12px; bottom:12px; border:1px solid var(--edge); background:var(--glass2); border-radius:999px; padding:5px 11px; font-size:12px; font-weight:800; color:var(--mute); }
+.ride.rode { opacity:.5; } .ride.rode .done { background:var(--cool); color:#08281c; border-color:var(--cool); }
+.ride .go { position:absolute; right:12px; bottom:12px; margin-right:84px; border:1px solid var(--edge); background:var(--glass2); border-radius:999px; padding:5px 11px; font-size:12px; font-weight:800; color:var(--mute); }
+
+.card { border-radius:20px; padding:16px; margin-bottom:10px; background:linear-gradient(135deg, rgba(255,255,255,.07), rgba(255,255,255,.025)); border:1px solid var(--edge); }
+.card h3 { margin:0 0 4px; font-size:17px; font-weight:800; } .card .max { font-size:12px; color:var(--mute); font-weight:700; }
+.steps { margin:10px 0 0; padding:0; list-style:none; counter-reset:s; }
+.steps li { counter-increment:s; position:relative; padding:0 0 10px 34px; font-size:14.5px; line-height:1.45; }
+.steps li::before { content:counter(s); position:absolute; left:0; top:0; width:24px; height:24px; border-radius:8px; background:var(--glass2); border:1px solid var(--edge); font-size:12px; font-weight:800; display:flex; align-items:center; justify-content:center; }
+.wx { display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; scrollbar-width:none; }
+.wx div { flex:none; width:62px; text-align:center; padding:10px 0; border-radius:14px; background:var(--glass2); font-size:12px; color:var(--mute); }
+.wx div b { display:block; font-size:18px; color:var(--txt); margin:2px 0; }
+.list { margin:6px 0 0; padding-left:18px; font-size:14.5px; line-height:1.7; color:#dfe2e8; }
+.note { font-size:12px; color:var(--mute); line-height:1.55; margin:8px 2px; }
+
+/* 지도 핀 */
+.pin { display:flex; align-items:center; gap:5px; transform:translate(-14px,-14px); white-space:nowrap; }
+.pin b { width:28px; height:28px; border-radius:50%; background:var(--c); color:#0d1117; font-size:11.5px; font-weight:900; display:flex; align-items:center; justify-content:center; border:2px solid #fff; box-shadow:0 4px 12px rgba(0,0,0,.4); }
+.pin span { font-size:12px; font-weight:800; color:#fff; text-shadow:0 1px 3px #000,0 0 6px #000; }
+.person { transform:translate(-17px,-17px); }
+.person b { width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:13px; color:#0d1117; border:3px solid #fff; box-shadow:0 0 0 6px rgba(61,220,151,.25), 0 6px 16px rgba(0,0,0,.45); }
+.person span { position:absolute; top:38px; left:50%; transform:translateX(-50%); font-size:12px; font-weight:800; color:#fff; background:rgba(13,17,23,.8); padding:2px 7px; border-radius:7px; white-space:nowrap; }
+.flag { font-size:30px; transform:translate(-8px,-30px); filter:drop-shadow(0 3px 5px rgba(0,0,0,.5)); }
+.leaflet-control-attribution { background:rgba(13,17,23,.6)!important; color:#9aa!important; font-size:9px; } .leaflet-control-attribution a { color:#9aa!important; }
+.leaflet-popup-content-wrapper, .leaflet-popup-tip { background:rgba(18,22,30,.95); color:var(--txt); border-radius:14px; }
+.toast { position:fixed; left:50%; top:calc(140px + env(safe-area-inset-top,0px)); transform:translateX(-50%) translateY(-20px); opacity:0; z-index:900; border-radius:14px; padding:10px 16px; font-size:14px; font-weight:700; transition:.3s; pointer-events:none; }
+.toast.show { opacity:1; transform:translateX(-50%); }
 </style>
 </head>
 <body>
-<header>
-  <h1>🎢 에버랜드 11/21 공포지수 지도</h1>
-  <div class="sub">공포지수 0(평온)~10(극한) · 운영·대기는 당일 에버랜드 앱에서 꼭 확인</div>
-</header>
-<nav>
-  <button data-t="map" class="on">🗺️ 지도·일행</button>
-  <button data-t="rides">📋 공포지수</button>
-  <button data-t="course">🧭 추천 코스</button>
-  <button data-t="tips">🧥 날씨·꿀팁</button>
+<div id="map"></div>
+
+<div class="top">
+  <div class="brand glass"><b>EVERLAND · 11.21</b><span>공포지수 지도 🎢</span></div>
+  <div class="wxchip glass" id="wxchip"><b>--°</b><small>지금 기온</small></div>
+</div>
+<div class="crew" id="crew"></div>
+
+<div class="fabs">
+  <button class="fab glass" id="fit" title="일행 모두 보기">👥</button>
+  <button class="fab glass" id="meet" title="모임장소">🚩</button>
+  <button class="fab share" id="share"><span class="dot"></span><span id="shareTxt">위치 공유</span></button>
+</div>
+
+<section class="sheet glass" id="sheet"><div class="grab"></div><div class="scroll" id="sheetBody"></div></section>
+
+<nav class="tabs glass">
+  <button data-t="map" class="on"><span>🗺️</span>지도</button>
+  <button data-t="rides"><span>🎢</span>공포지수</button>
+  <button data-t="course"><span>🧭</span>코스</button>
+  <button data-t="tips"><span>🧥</span>날씨·팁</button>
 </nav>
-
-<section id="map-sec" class="on">
-  <div id="map"></div>
-  <div class="bar">
-    <button class="btn pri" id="share">📍 내 위치 공유 시작</button>
-    <button class="btn" id="meet">🚩 여기를 모임장소로</button>
-    <button class="btn" id="fit">👥 일행 모두 보기</button>
-  </div>
-  <div class="ppl" id="ppl"></div>
-  <div class="note">위치는 '공유 시작'을 누른 사람만, 이 링크를 가진 사람끼리만 보입니다(30초마다 갱신, 창을 닫거나 '공유 중지'하면 멈춤). 기록은 중계 서버(ntfy.sh)에 최대 몇 시간만 남습니다. 지도 핀은 위치가 확인된 놀이기구만 표시했어요.</div>
-</section>
-
-<section id="rides-sec">
-  <div class="filters" id="filters"></div>
-  <div class="list" id="list"></div>
-</section>
-
-<section id="course-sec"><div id="course"></div></section>
-<section id="tips-sec"><div id="tips"></div></section>
+<div class="toast glass" id="toast"></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
@@ -90,6 +142,8 @@ const RIDES = [
   { n:'썬더폴스', s:6.4, z:'아메리칸 어드벤처', h:'키 제한 확인', tag:['💦 젖음','20m 낙하'], d:'보트 타고 20m 낙하 + 백드롭. 추운 날 젖으면 고생 — 우비 추천. 저온 시 운휴 가능.' },
   { n:'콜럼버스 대탐험', s:6.0, z:'아메리칸 어드벤처', h:'키 제한 확인', tag:['바이킹'], d:'대형 바이킹. 맨 끝자리가 제일 무서움.' },
   { n:'아마존 익스프레스', s:4.2, z:'주토피아', h:'키 제한 확인', tag:['💦 많이 젖음','래프팅'], d:'원형 보트 급류. 무섭진 않은데 물이 랜덤. 저온 시 운휴 가능.', pos:[37.29127,127.20648] },
+  { n:'미스터리 맨션', s:3.8, z:'유러피언 어드벤처', h:'키 제한 확인', tag:['어두운 실내','슈팅 게임'], d:'유령의 집 콘셉트 실내 슈팅 다크라이드. 깜깜해서 살짝 오싹.' },
+  { n:'레이싱코스터', s:3.2, z:'매직랜드(이솝빌리지)', h:'키 제한 확인', tag:['어린이 코스터'], d:'작은 롤러코스터. 입문용.' },
   { n:'스카이댄싱', s:3.5, z:'매직랜드', h:'키 제한 확인', tag:['그네식 회전'], d:'높이 도는 의자 그네.', pos:[37.29201,127.19935] },
   { n:'플래시팡팡', s:3.0, z:'매직랜드', h:'키 제한 확인', tag:['가족형'], d:'오르내리는 가족형 기구.', pos:[37.29292,127.19894] },
   { n:'매직스윙', s:3.0, z:'매직랜드', h:'키 제한 확인', tag:['가족형','흔들림'], d:'작은 바이킹 느낌.', pos:[37.29217,127.19882] },
@@ -102,116 +156,134 @@ const RIDES = [
   { n:'사파리월드', s:0.8, z:'주토피아', h:'-', tag:['동물','버스'], d:'버스 타고 맹수 구경. 웃음 담당.' },
   { n:'회전목마', s:0.5, z:'글로벌 페어', h:'-', tag:['사진 맛집'], d:'인생샷 장소.', pos:[37.29136,127.20412] },
 ];
-const color = s => s >= 8.5 ? '#b3261e' : s >= 7 ? '#d9531e' : s >= 5 ? '#e0a100' : s >= 3 ? '#3f8f5a' : '#5b8cc4';
+const col = s => s >= 8.5 ? 'var(--hot)' : s >= 7 ? 'var(--warm)' : s >= 5 ? 'var(--mid)' : s >= 3 ? 'var(--cool)' : 'var(--calm)';
 const lv = s => s >= 8.5 ? '극한' : s >= 7 ? '강함' : s >= 5 ? '중간' : s >= 3 ? '순한맛' : '평온';
+const $ = id => document.getElementById(id);
+const toast = t => { const e = $('toast'); e.textContent = t; e.classList.add('show'); clearTimeout(e._t); e._t = setTimeout(() => e.classList.remove('show'), 2600); };
 
-// 탭
-document.querySelectorAll('nav button').forEach(b => b.onclick = () => {
-  document.querySelectorAll('nav button').forEach(x => x.classList.toggle('on', x === b));
-  document.querySelectorAll('section').forEach(s => s.classList.toggle('on', s.id === b.dataset.t + '-sec'));
-  if (b.dataset.t === 'map') setTimeout(() => map.invalidateSize(), 50);
-});
-
-// 지도
-const map = L.map('map', { zoomControl:false }).setView([37.2918, 127.2025], 16);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:19, attribution:'© OpenStreetMap' }).addTo(map);
-RIDES.filter(r => r.pos).forEach(r => {
-  L.circleMarker(r.pos, { radius:9, color:'#fff', weight:2, fillColor:color(r.s), fillOpacity:1 }).addTo(map)
-   .bindTooltip(`${r.n} ${r.s.toFixed(1)}`, { permanent:r.s >= 6, direction:'top', offset:[0,-8] })
-   .bindPopup(`<b>${r.n}</b> · 공포 ${r.s.toFixed(1)} (${lv(r.s)})<br>${r.d}`);
-});
-
-// 공포지수 목록
-const rode = new Set(JSON.parse(localStorage.getItem('rode') || '[]'));
-const F = [['전체',()=>true],['🔥 7 이상',r=>r.s>=7],['😐 3~7',r=>r.s>=3&&r.s<7],['🙂 3 미만',r=>r.s<3],['💦 젖는 것',r=>r.tag.some(t=>t.includes('젖'))],['✅ 안 탄 것',r=>!rode.has(r.n)]];
-let fi = 0;
-function renderList() {
-  document.getElementById('filters').innerHTML = F.map((f,i)=>`<button class="${i===fi?'on':''}" data-i="${i}">${f[0]}</button>`).join('');
-  document.querySelectorAll('#filters button').forEach(b => b.onclick = () => { fi = +b.dataset.i; renderList(); });
-  document.getElementById('list').innerHTML = RIDES.filter(F[fi][1]).map(r => `
-    <div class="card ${rode.has(r.n)?'rode':''}">
-      <div class="score" style="background:${color(r.s)}">${r.s.toFixed(1)}<small>${lv(r.s)}</small></div>
-      <div><h3>${r.n}</h3><p>${r.z} · 키 ${r.h}</p><p>${r.d}</p><div class="tags">${r.tag.map(t=>`<span>${t}</span>`).join('')}</div></div>
-      <button class="done" data-n="${r.n}" title="탔어요">✓</button>
-    </div>`).join('');
-  document.querySelectorAll('.done').forEach(b => b.onclick = () => {
-    rode.has(b.dataset.n) ? rode.delete(b.dataset.n) : rode.add(b.dataset.n);
-    localStorage.setItem('rode', JSON.stringify([...rode])); renderList();
+// 지도(밝은 길이 잘 보이는 어두운 바탕 지도)
+const map = L.map('map', { zoomControl:false, attributionControl:true }).setView([37.2918, 127.2025], 16);
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:19, attribution:'© OpenStreetMap' }).addTo(map);
+const pinLayer = L.layerGroup().addTo(map);
+function drawPins() {
+  pinLayer.clearLayers();
+  const z = map.getZoom();
+  RIDES.filter(r => r.pos).forEach(r => {
+    const name = (z >= 17 || r.s >= 6) ? `<span>${r.n}</span>` : '';
+    L.marker(r.pos, { icon: L.divIcon({ className:'', html:`<div class="pin" style="--c:${col(r.s)}"><b>${r.s.toFixed(1)}</b>${name}</div>`, iconSize:[0,0] }) })
+     .on('click', () => { openTab('rides'); setTimeout(() => document.querySelector(`[data-ride="${r.n}"]`)?.scrollIntoView({ behavior:'smooth', block:'center' }), 350); })
+     .addTo(pinLayer);
   });
 }
-renderList();
+map.on('zoomend', drawPins); drawPins();
 
-// 추천 코스
-document.getElementById('course').innerHTML = `
-<div class="box"><h2>🐣 쫄보 코스 (최고 3.5)</h2><ol><li>회전목마 → 사파리월드 → 로스트밸리</li><li>스카이크루즈로 이동하며 경치</li><li>매직랜드: 피터팬 · 플래시팡팡 · 스카이댄싱</li><li>범퍼카로 마무리</li></ol></div>
-<div class="box"><h2>😎 보통 코스 (최고 7.0)</h2><ol><li>오픈런: 사파리월드(대기 짧을 때)</li><li>콜럼버스 대탐험 → 렛츠트위스트 → 허리케인</li><li>아마존 익스프레스(우비 필수, 날 따뜻한 낮에)</li><li>저녁: 회전목마·퍼레이드</li></ol></div>
-<div class="box"><h2>🔥 강심장 코스 (최고 9.6)</h2><ol><li>오픈 직후 T익스프레스 직행(대기 가장 짧음)</li><li>롤링엑스트레인 → 더블락스핀 → 허리케인</li><li>썬더폴스(낮 기온 높을 때)</li><li>휴먼스카이(유료) or 블러드시티(시즌 호러)</li></ol></div>
-<div class="note">대기 줄이는 법: 오픈 직후 인기 기구 먼저, 점심시간(12~13시)·퍼레이드 시간에 인기 기구, 에버랜드 앱 '스마트 줄서기' 확인.</div>`;
+// 탭·시트
+const tabs = document.querySelectorAll('.tabs button');
+function openTab(t) {
+  tabs.forEach(b => b.classList.toggle('on', b.dataset.t === t));
+  if (t === 'map') { $('sheet').classList.remove('open'); return; }
+  ({ rides: renderRides, course: renderCourse, tips: renderTips })[t]();
+  $('sheet').classList.add('open'); $('sheetBody').scrollTop = 0;
+}
+tabs.forEach(b => b.onclick = () => openTab(b.dataset.t));
+let sy = null; $('sheet').addEventListener('touchstart', e => { sy = $('sheetBody').scrollTop <= 0 ? e.touches[0].clientY : null; }, { passive:true });
+$('sheet').addEventListener('touchmove', e => { if (sy !== null && e.touches[0].clientY - sy > 90) { sy = null; openTab('map'); } }, { passive:true });
 
-// 날씨·꿀팁 (Open-Meteo, 키 없음)
-document.getElementById('tips').innerHTML = `
-<div class="box"><h2>🌡️ 11/21 에버랜드 날씨(시간별)</h2><div class="wx" id="wx">불러오는 중…</div></div>
-<div class="box"><h2>🎒 챙길 것</h2><ul><li>핫팩·장갑·목도리 (저녁엔 영하권 가능)</li><li>보조배터리 (위치 공유·앱 쓰면 금방 닳아요)</li><li>우비 (썬더폴스·아마존 탈 거면 필수, 젖으면 추움)</li><li>신분증·할인카드, 편한 신발</li></ul></div>
-<div class="box"><h2>💡 꿀팁</h2><ul><li>롤러코스터는 안경·모자·폰 고정. 짐은 보관함</li><li>추운 날은 물 젖는 기구를 낮 가장 따뜻한 시간에</li><li>길 잃으면 '모임장소' 핀으로 집결</li><li>운휴·대기시간은 에버랜드 공식 앱이 가장 정확</li></ul></div>`;
-fetch('https://api.open-meteo.com/v1/forecast?latitude=37.2918&longitude=127.2025&hourly=temperature_2m,apparent_temperature,precipitation_probability&timezone=Asia%2FSeoul&start_date=2026-11-21&end_date=2026-11-21')
+// 공포지수
+const rode = new Set(JSON.parse(localStorage.getItem('rode') || '[]'));
+const F = [['전체',()=>true],['🔥 7+',r=>r.s>=7],['😐 3~7',r=>r.s>=3&&r.s<7],['🙂 ~3',r=>r.s<3],['💦 젖음',r=>r.tag.some(t=>t.includes('젖'))],['🎟️ 안 탄 것',r=>!rode.has(r.n)]];
+let fi = 0;
+function renderRides() {
+  const score = [...rode].reduce((a, n) => a + (RIDES.find(r => r.n === n)?.s || 0), 0);
+  $('sheetBody').innerHTML = `<h2>공포지수</h2><p class="lead">0 평온 ~ 10 극한 · 탄 기구는 '탔어요'로 체크 · 내 공포 점수 <b style="color:var(--txt)">${score.toFixed(1)}</b></p>
+  <div class="chips">${F.map((f,i)=>`<button class="${i===fi?'on':''}" data-i="${i}">${f[0]}</button>`).join('')}</div>` +
+  RIDES.filter(F[fi][1]).map(r => `
+    <div class="ride ${rode.has(r.n)?'rode':''}" data-ride="${r.n}" style="--c:${col(r.s)}">
+      <div class="row"><div class="nm"><h3>${r.n}</h3><div class="zone">${r.z} · ${r.h.startsWith('키') ? r.h : '키 ' + r.h}</div></div>
+      <div class="num"><b>${r.s.toFixed(1)}</b><small>${lv(r.s)}</small></div></div>
+      <div class="meter" style="--s:${Math.max(r.s,.3)}"><i></i></div>
+      <p>${r.d}</p><div class="tags">${r.tag.map(t=>`<span>${t}</span>`).join('')}</div>
+      <div style="height:30px"></div>
+      ${r.pos ? `<button class="go" data-go="${r.n}">지도 📍</button>` : ''}
+      <button class="done" data-n="${r.n}">${rode.has(r.n) ? '✓ 탔어요' : '탔어요'}</button>
+    </div>`).join('') + `<p class="note">공포지수는 높이·낙하·회전·속도를 종합한 주관 평가예요. 운영 여부·대기시간·키 제한은 당일 에버랜드 공식 앱이 정확해요.</p>`;
+  $('sheetBody').querySelectorAll('.chips button').forEach(b => b.onclick = () => { fi = +b.dataset.i; renderRides(); });
+  $('sheetBody').querySelectorAll('.done').forEach(b => b.onclick = () => { rode.has(b.dataset.n) ? rode.delete(b.dataset.n) : (rode.add(b.dataset.n), toast(`${b.dataset.n} 클리어 🎉`)); localStorage.setItem('rode', JSON.stringify([...rode])); renderRides(); });
+  $('sheetBody').querySelectorAll('.go').forEach(b => b.onclick = () => { const r = RIDES.find(x => x.n === b.dataset.go); openTab('map'); map.flyTo(r.pos, 18, { duration:.8 }); });
+}
+
+function renderCourse() {
+  const c = (t, m, steps) => `<div class="card"><h3>${t}</h3><div class="max">${m}</div><ol class="steps">${steps.map(s=>`<li>${s}</li>`).join('')}</ol></div>`;
+  $('sheetBody').innerHTML = `<h2>추천 코스</h2><p class="lead">오늘 컨디션에 맞춰 골라요</p>` +
+    c('🐣 쫄보 코스', '최고 공포 3.5', ['회전목마에서 인생샷', '사파리월드 → 로스트밸리', '스카이크루즈로 이동하며 경치', '매직랜드: 피터팬 · 플래시팡팡 · 스카이댄싱', '범퍼카로 마무리']) +
+    c('😎 보통 코스', '최고 공포 7.0', ['오픈런 사파리월드(대기 짧을 때)', '콜럼버스 대탐험 → 렛츠트위스트 → 허리케인', '아마존 익스프레스(우비, 낮 따뜻할 때)', '저녁 퍼레이드·회전목마']) +
+    c('🔥 강심장 코스', '최고 공포 9.6', ['오픈 직후 T익스프레스 직행', '롤링엑스트레인 → 더블락스핀 → 허리케인', '썬더폴스(가장 따뜻한 시간)', '휴먼스카이(유료) or 블러드시티(호러)']) +
+    `<p class="note">대기 줄이기: 오픈 직후 인기 기구 먼저 · 점심(12~13시)과 퍼레이드 시간에 인기 기구 · 공식 앱 스마트 줄서기 확인</p>`;
+}
+
+let WX = null;
+function renderTips() {
+  $('sheetBody').innerHTML = `<h2>날씨·꿀팁</h2><p class="lead">11/21 에버랜드 시간별 예보</p>
+    <div class="card"><div class="wx" id="wx">${WX || '불러오는 중…'}</div></div>
+    <div class="card"><h3>🎒 챙길 것</h3><ul class="list"><li>핫팩·장갑·목도리 — 저녁엔 영하권 가능</li><li>보조배터리 — 위치 공유하면 빨리 닳아요</li><li>우비 — 썬더폴스·아마존 탈 거면 필수</li><li>편한 신발, 신분증·할인카드</li></ul></div>
+    <div class="card"><h3>💡 꿀팁</h3><ul class="list"><li>코스터는 안경·모자·폰 고정, 짐은 보관함</li><li>젖는 기구는 하루 중 가장 따뜻할 때</li><li>흩어지면 🚩 모임장소 깃발로 집결</li><li>운휴·대기는 에버랜드 공식 앱이 정확</li></ul></div>`;
+}
+fetch('https://api.open-meteo.com/v1/forecast?latitude=37.2918&longitude=127.2025&hourly=temperature_2m,apparent_temperature,precipitation_probability,weather_code&current=temperature_2m&timezone=Asia%2FSeoul&start_date=2026-11-21&end_date=2026-11-21')
   .then(r => r.json()).then(d => {
-    const h = d.hourly; let out = '';
-    for (let i = 9; i <= 22; i++) out += `<div><b>${i}시</b><br>${Math.round(h.temperature_2m[i])}°<br><small>체감 ${Math.round(h.apparent_temperature[i])}°</small><br><small>☔${h.precipitation_probability[i] ?? '-'}%</small></div>`;
-    document.getElementById('wx').innerHTML = out;
-  }).catch(() => document.getElementById('wx').textContent = '날씨를 못 불러왔어요');
+    const h = d.hourly, ic = c => c >= 71 ? '❄️' : c >= 51 ? '🌧️' : c >= 3 ? '☁️' : c >= 1 ? '⛅' : '☀️';
+    WX = ''; for (let i = 9; i <= 22; i++) WX += `<div>${i}시<b>${Math.round(h.temperature_2m[i])}°</b>${ic(h.weather_code[i])}<br>체감 ${Math.round(h.apparent_temperature[i])}°<br>☔${h.precipitation_probability[i] ?? '-'}%</div>`;
+    const now = new Date(), hh = now.getHours();
+    const t = (now.toISOString().slice(0,10) === '2026-11-21') ? h.temperature_2m[hh] : d.current?.temperature_2m;
+    $('wxchip').innerHTML = `<b>${Math.round(t)}°</b><small>${now.toISOString().slice(0,10) === '2026-11-21' ? '지금 기온' : '현재 기온'}</small>`;
+    if ($('wx')) $('wx').innerHTML = WX;
+  }).catch(() => {});
 
-// 실시간 일행 위치 (ntfy.sh 중계, 방 이름은 링크 # 뒤에)
+// 일행 실시간 위치 (ntfy.sh 중계, 방 이름은 링크 # 뒤)
 const room = (location.hash.match(/r=([\w-]+)/) || [])[1];
 const TOPIC = room ? 'everland1121-' + room : null;
-const people = {}; const marks = {}; let meetMark = null;
-let me = localStorage.getItem('name') || '';
-function renderPeople() {
-  const now = Date.now();
-  document.getElementById('ppl').innerHTML = Object.values(people).sort((a,b)=>b.t-a.t).map(p =>
-    `<div><span>${p.name === me ? '🟢 ' : '🔵 '}${p.name}</span><small>${Math.round((now - p.t)/60000)}분 전</small></div>`).join('') || '<div><small>아직 공유 중인 사람이 없어요</small></div>';
+const HUES = ['#3ddc97','#5aa9ff','#ffc43d','#ff8ad1','#b18cff','#ff8a3d','#4de1e1','#c6f05a','#ff6b6b','#9ad0ff','#ffd28a','#a0f0c8'];
+const hue = n => HUES[[...n].reduce((a,c)=>a+c.charCodeAt(0),0) % HUES.length];
+const people = {}, marks = {}; let meetMark = null, me = localStorage.getItem('name') || '';
+function renderCrew() {
+  const now = Date.now(), list = Object.values(people).sort((a,b)=>b.t-a.t);
+  $('crew').innerHTML = list.map(p => `<div class="p glass" data-n="${p.name}"><i style="background:${hue(p.name)}">${p.name.slice(0,1)}</i>${p.name}<small>${Math.max(0,Math.round((now-p.t)/60000))}분</small></div>`).join('');
+  $('crew').querySelectorAll('.p').forEach(e => e.onclick = () => { const p = people[e.dataset.n]; map.flyTo([p.lat,p.lon], 18, { duration:.7 }); });
 }
 function upsert(p) {
   if (p.type === 'meet') {
     if (meetMark) map.removeLayer(meetMark);
-    meetMark = L.marker([p.lat, p.lon]).addTo(map).bindTooltip(`🚩 모임장소 (${p.name})`, { permanent:true, direction:'top' });
+    meetMark = L.marker([p.lat, p.lon], { icon: L.divIcon({ className:'', html:'<div class="flag">🚩</div>', iconSize:[0,0] }) }).addTo(map);
+    if (p.t > Date.now() - 600000) { toast(`🚩 ${p.name}님이 모임장소를 찍었어요`); navigator.vibrate?.(200); }
     return;
   }
-  if (!p.name) return;
-  if (people[p.name] && people[p.name].t > p.t) return;
+  if (!p.name || (people[p.name] && people[p.name].t > p.t)) return;
   people[p.name] = p;
-  const ll = [p.lat, p.lon];
-  if (!marks[p.name]) marks[p.name] = L.circleMarker(ll, { radius:8, color:'#fff', weight:3, fillColor: p.name === me ? '#1a7f37' : '#2563eb', fillOpacity:1 }).addTo(map).bindTooltip(p.name, { permanent:true, direction:'right', className:'me' });
-  else marks[p.name].setLatLng(ll);
-  renderPeople();
+  const html = `<div class="person" style="position:relative"><b style="background:${hue(p.name)}">${p.name.slice(0,1)}</b><span>${p.name}${p.name===me?' (나)':''}</span></div>`;
+  if (!marks[p.name]) marks[p.name] = L.marker([p.lat,p.lon], { icon: L.divIcon({ className:'', html, iconSize:[0,0] }), zIndexOffset:1000 }).addTo(map);
+  else marks[p.name].setLatLng([p.lat,p.lon]);
+  renderCrew();
 }
-if (TOPIC) {
-  const es = new EventSource(`https://ntfy.sh/${TOPIC}/sse?since=3h`);
-  es.onmessage = e => { try { const m = JSON.parse(e.data); upsert(JSON.parse(m.message)); } catch {} };
-}
-setInterval(renderPeople, 30000); renderPeople();
-const send = obj => fetch(`https://ntfy.sh/${TOPIC}`, { method:'POST', body: JSON.stringify(obj) });
+if (TOPIC) { const es = new EventSource(`https://ntfy.sh/${TOPIC}/sse?since=3h`); es.onmessage = e => { try { upsert(JSON.parse(JSON.parse(e.data).message)); } catch {} }; }
+setInterval(renderCrew, 30000);
+const send = o => fetch(`https://ntfy.sh/${TOPIC}`, { method:'POST', body: JSON.stringify(o) });
 let watchId = null, last = 0;
-document.getElementById('share').onclick = () => {
-  if (!TOPIC) return alert('단톡방에 올라온 링크로 들어와야 일행 위치를 볼 수 있어요.');
-  if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; document.getElementById('share').textContent = '📍 내 위치 공유 시작'; return; }
-  me = prompt('일행에게 보일 이름(단톡 닉네임)', me || '') || ''; if (!me) return;
+$('share').onclick = () => {
+  if (!TOPIC) return toast('단톡방 링크로 들어와야 일행이 보여요');
+  if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; $('share').classList.remove('live'); $('shareTxt').textContent = '위치 공유'; toast('공유를 껐어요'); return; }
+  me = (prompt('일행에게 보일 이름(단톡 닉네임)', me || '') || '').trim(); if (!me) return;
   localStorage.setItem('name', me);
   watchId = navigator.geolocation.watchPosition(pos => {
-    const p = { name: me, lat: +pos.coords.latitude.toFixed(5), lon: +pos.coords.longitude.toFixed(5), t: Date.now() };
-    upsert(p);
-    if (Date.now() - last > 30000) { last = Date.now(); send(p); }
-  }, err => alert('위치 권한을 허용해 주세요: ' + err.message), { enableHighAccuracy:true, maximumAge:15000 });
-  document.getElementById('share').textContent = '⏹ 공유 중지';
+    const p = { name: me, lat:+pos.coords.latitude.toFixed(5), lon:+pos.coords.longitude.toFixed(5), t: Date.now() };
+    upsert(p); if (Date.now() - last > 30000) { last = Date.now(); send(p); }
+  }, err => toast('위치 권한을 허용해 주세요'), { enableHighAccuracy:true, maximumAge:15000 });
+  $('share').classList.add('live'); $('shareTxt').textContent = '공유 중'; toast('일행에게 내 위치가 보여요 📍');
 };
-document.getElementById('meet').onclick = () => {
-  if (!TOPIC) return alert('단톡방 링크로 들어와야 해요.');
+$('meet').onclick = () => {
+  if (!TOPIC) return toast('단톡방 링크로 들어와야 해요');
   const c = map.getCenter();
-  if (confirm('지도 가운데를 모임장소로 정해 일행에게 알릴까요?')) { const p = { type:'meet', name: me || '누군가', lat:+c.lat.toFixed(5), lon:+c.lng.toFixed(5), t: Date.now() }; upsert(p); send(p); }
+  if (confirm('지도 가운데를 모임장소로 찍어 일행에게 알릴까요?')) { const p = { type:'meet', name: me || '누군가', lat:+c.lat.toFixed(5), lon:+c.lng.toFixed(5), t: Date.now() }; upsert(p); send(p); }
 };
-document.getElementById('fit').onclick = () => {
-  const pts = Object.values(people).map(p => [p.lat, p.lon]);
-  if (pts.length) map.fitBounds(pts, { padding:[40,40], maxZoom:17 }); else map.setView([37.2918, 127.2025], 16);
-};
+$('fit').onclick = () => { const pts = Object.values(people).map(p => [p.lat,p.lon]); pts.length ? map.flyToBounds(pts, { padding:[90,90], maxZoom:17 }) : (map.flyTo([37.2918,127.2025],16), toast('아직 공유 중인 일행이 없어요')); };
 </script>
 </body>
 </html>
