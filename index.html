@@ -44,7 +44,7 @@ button { font-family:inherit; color:inherit; cursor:pointer; }
 @keyframes pulse { 0%{box-shadow:0 0 0 0 rgba(255,255,255,.8)} 100%{box-shadow:0 0 0 12px rgba(255,255,255,0)} }
 
 /* 아래 탭 */
-.tabs { position:fixed; left:10px; right:10px; bottom:calc(10px + var(--safe-b)); z-index:700; border-radius:24px; display:grid; grid-template-columns:repeat(4,1fr); padding:6px; }
+.tabs { position:fixed; left:10px; right:10px; bottom:calc(10px + var(--safe-b)); z-index:700; border-radius:24px; display:grid; grid-template-columns:repeat(5,1fr); padding:6px; }
 .tabs button { background:none; border:0; border-radius:18px; padding:8px 0 6px; display:flex; flex-direction:column; align-items:center; gap:2px; font-size:11.5px; font-weight:700; color:var(--mute); }
 .tabs button span { font-size:20px; filter:grayscale(.6); }
 .tabs button.on { background:var(--glass2); color:var(--txt); } .tabs button.on span { filter:none; }
@@ -103,6 +103,19 @@ button { font-family:inherit; color:inherit; cursor:pointer; }
 .flag { font-size:30px; transform:translate(-8px,-30px); filter:drop-shadow(0 3px 5px rgba(0,0,0,.5)); }
 .leaflet-control-attribution { background:rgba(13,17,23,.6)!important; color:#9aa!important; font-size:9px; } .leaflet-control-attribution a { color:#9aa!important; }
 .leaflet-popup-content-wrapper, .leaflet-popup-tip { background:rgba(18,22,30,.95); color:var(--txt); border-radius:14px; }
+.mem { display:flex; align-items:center; gap:12px; padding:12px 14px; border-radius:16px; margin-bottom:8px; background:linear-gradient(135deg, rgba(255,255,255,.07), rgba(255,255,255,.025)); border:1px solid var(--edge); }
+.mem i { width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-style:normal; font-weight:900; color:#0d1117; flex:none; }
+.mem .nm { flex:1; font-size:16px; font-weight:800; } .mem .nm small { display:block; font-size:12px; color:var(--mute); font-weight:600; margin-top:1px; }
+.mem.off i { filter:grayscale(1) brightness(.6); }
+.st { font-size:12px; font-weight:800; padding:4px 10px; border-radius:999px; background:var(--glass2); color:var(--mute); border:0; }
+.st.on { background:rgba(61,220,151,.18); color:var(--cool); }
+.me-row { display:flex; gap:10px; align-items:center; padding:14px; border-radius:18px; margin:0 0 14px; background:linear-gradient(135deg, rgba(255,106,61,.18), rgba(255,61,110,.12)); border:1px solid rgba(255,120,120,.35); }
+.me-row .nm { flex:1; font-size:15px; font-weight:800; } .me-row .nm small { display:block; color:var(--mute); font-size:12px; font-weight:600; }
+.sw { width:58px; height:34px; border-radius:999px; background:rgba(255,255,255,.18); border:0; position:relative; flex:none; transition:.25s; }
+.sw::after { content:""; position:absolute; top:4px; left:4px; width:26px; height:26px; border-radius:50%; background:#fff; transition:.25s; }
+.sw.on { background:var(--cool); } .sw.on::after { left:28px; }
+.pick { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:0 0 14px; }
+.pick button { border:1px solid var(--edge); background:var(--glass2); border-radius:14px; padding:12px 4px; font-size:14px; font-weight:800; }
 .toast { position:fixed; left:50%; top:calc(140px + env(safe-area-inset-top,0px)); transform:translateX(-50%) translateY(-20px); opacity:0; z-index:900; border-radius:14px; padding:10px 16px; font-size:14px; font-weight:700; transition:.3s; pointer-events:none; }
 .toast.show { opacity:1; transform:translateX(-50%); }
 </style>
@@ -128,6 +141,7 @@ button { font-family:inherit; color:inherit; cursor:pointer; }
   <button data-t="map" class="on"><span>🗺️</span>지도</button>
   <button data-t="rides"><span>🎢</span>공포지수</button>
   <button data-t="course"><span>🧭</span>코스</button>
+  <button data-t="crewtab"><span>👥</span>일행</button>
   <button data-t="tips"><span>🌡️</span>날씨</button>
 </nav>
 <div class="toast glass" id="toast"></div>
@@ -188,7 +202,7 @@ const tabs = document.querySelectorAll('.tabs button');
 function openTab(t) {
   tabs.forEach(b => b.classList.toggle('on', b.dataset.t === t));
   if (t === 'map') { $('sheet').classList.remove('open'); return; }
-  ({ rides: renderRides, course: renderCourse, tips: renderTips })[t]();
+  ({ rides: renderRides, course: renderCourse, tips: renderTips, crewtab: renderCrewTab })[t]();
   $('sheet').classList.add('open'); $('sheetBody').scrollTop = 0;
 }
 tabs.forEach(b => b.onclick = () => openTab(b.dataset.t));
@@ -248,11 +262,38 @@ const room = (location.hash.match(/r=([\w-]+)/) || [])[1];
 const TOPIC = room ? 'everland1121-' + room : null;
 const HUES = ['#3ddc97','#5aa9ff','#ffc43d','#ff8ad1','#b18cff','#ff8a3d','#4de1e1','#c6f05a','#ff6b6b','#9ad0ff','#ffd28a','#a0f0c8'];
 const hue = n => HUES[[...n].reduce((a,c)=>a+c.charCodeAt(0),0) % HUES.length];
+// 단톡방 참여자 12명(2026-11-20 대표님 캡처). 여기 없는 이름도 '직접 입력'으로 참여 가능
+const MEMBERS = ['마크','피치','가을','겨울','돌돌','디그','멋진 곰돌','방가','뿜뿜','안농','춘상','팝콘'];
 const people = {}, marks = {}; let meetMark = null, me = localStorage.getItem('name') || '';
+let watchId = null, last = 0, sharing = false;
+const ago = t => { const m = Math.max(0, Math.round((Date.now() - t) / 60000)); return m < 1 ? '방금' : m < 60 ? m + '분 전' : Math.floor(m / 60) + '시간 전'; };
+const isOn = p => !!p && !p.off && !!p.lat && Date.now() - p.t < 20 * 60000;   // 20분 넘게 소식 없으면 꺼진 걸로
+const crewTabOpen = () => $('sheet').classList.contains('open') && document.querySelector('.tabs .on')?.dataset.t === 'crewtab';
 function renderCrew() {
-  const now = Date.now(), list = Object.values(people).sort((a,b)=>b.t-a.t);
-  $('crew').innerHTML = list.map(p => `<div class="p glass" data-n="${p.name}"><i style="background:${hue(p.name)}">${p.name.slice(0,1)}</i>${p.name}<small>${Math.max(0,Math.round((now-p.t)/60000))}분</small></div>`).join('');
+  const list = Object.values(people).filter(isOn).sort((a,b)=>b.t-a.t);
+  $('crew').innerHTML = list.map(p => `<div class="p glass" data-n="${p.name}"><i style="background:${hue(p.name)}">${p.name.slice(0,1)}</i>${p.name}<small>${ago(p.t)}</small></div>`).join('');
   $('crew').querySelectorAll('.p').forEach(e => e.onclick = () => { const p = people[e.dataset.n]; map.flyTo([p.lat,p.lon], 18, { duration:.7 }); });
+  for (const n in marks) if (!isOn(people[n])) { map.removeLayer(marks[n]); delete marks[n]; }
+  if (crewTabOpen()) renderCrewTab();
+}
+function renderCrewTab() {
+  const names = [...new Set([...MEMBERS, ...Object.keys(people)])];
+  const onCount = names.filter(n => isOn(people[n])).length;
+  $('sheetBody').innerHTML = `<h2>일행</h2><p class="lead">${names.length}명 중 <b style="color:var(--cool)">${onCount}명</b> 위치 공유 중 · 공유 중인 사람을 누르면 지도에서 찾아가요</p>
+    <div class="me-row"><div class="nm">${me ? `나: ${me}` : '먼저 내 이름을 골라 주세요'}<small>${sharing ? '켜짐 · 일행 지도에 내 위치가 보여요' : '꺼짐 · 켜면 일행 지도에 표시돼요'}</small></div>
+      ${me ? `<button class="st" id="rename">이름 변경</button>` : ''}<button class="sw ${sharing ? 'on' : ''}" id="sw" aria-label="위치 공유 켜기/끄기"></button></div>
+    ${me ? '' : `<div class="pick">${MEMBERS.map(n => `<button data-pick="${n}">${n}</button>`).join('')}<button data-pick="">직접 입력</button></div>`}` +
+    names.map(n => { const p = people[n], on = isOn(p);
+      const sub = on ? '마지막 위치 ' + ago(p.t) : p ? (p.off ? '공유 끔 · ' + ago(p.t) : '위치 오래됨 · ' + ago(p.t)) : '아직 공유 안 함';
+      return `<div class="mem ${on ? '' : 'off'}" data-n="${n}"><i style="background:${hue(n)}">${n.slice(0,1)}</i>
+        <div class="nm">${n}${n === me ? ' (나)' : ''}<small>${sub}</small></div>
+        <span class="st ${on ? 'on' : ''}">${on ? '● 공유 중' : '꺼짐'}</span></div>`; }).join('');
+  $('sw').onclick = () => toggleShare();
+  if ($('rename')) $('rename').onclick = () => { if (sharing) toggleShare(); me = ''; localStorage.removeItem('name'); renderCrewTab(); };
+  $('sheetBody').querySelectorAll('[data-pick]').forEach(b => b.onclick = () => {
+    const n = b.dataset.pick || (prompt('일행에게 보일 이름') || '').trim(); if (!n) return;
+    me = n; localStorage.setItem('name', me); renderCrewTab(); toast(`${me}(으)로 정했어요 · 스위치를 켜면 공유돼요`); });
+  $('sheetBody').querySelectorAll('.mem').forEach(e => e.onclick = () => { const p = people[e.dataset.n]; if (isOn(p)) { openTab('map'); map.flyTo([p.lat,p.lon], 18, { duration:.7 }); } else toast(`${e.dataset.n}님은 지금 공유 중이 아니에요`); });
 }
 function upsert(p) {
   if (p.type === 'meet') {
@@ -262,27 +303,37 @@ function upsert(p) {
     return;
   }
   if (!p.name || (people[p.name] && people[p.name].t > p.t)) return;
-  people[p.name] = p;
-  const html = `<div class="person" style="position:relative"><b style="background:${hue(p.name)}">${p.name.slice(0,1)}</b><span>${p.name}${p.name===me?' (나)':''}</span></div>`;
-  if (!marks[p.name]) marks[p.name] = L.marker([p.lat,p.lon], { icon: L.divIcon({ className:'', html, iconSize:[0,0] }), zIndexOffset:1000 }).addTo(map);
-  else marks[p.name].setLatLng([p.lat,p.lon]);
+  people[p.name] = p.off ? { ...(people[p.name] || {}), off: true, t: p.t, name: p.name } : p;
+  const q = people[p.name];
+  if (isOn(q)) {
+    const html = `<div class="person" style="position:relative"><b style="background:${hue(q.name)}">${q.name.slice(0,1)}</b><span>${q.name}${q.name===me?' (나)':''}</span></div>`;
+    if (!marks[q.name]) marks[q.name] = L.marker([q.lat,q.lon], { icon: L.divIcon({ className:'', html, iconSize:[0,0] }), zIndexOffset:1000 }).addTo(map);
+    else marks[q.name].setLatLng([q.lat,q.lon]);
+  }
   renderCrew();
 }
 if (TOPIC) { const es = new EventSource(`https://ntfy.sh/${TOPIC}/sse?since=3h`); es.onmessage = e => { try { upsert(JSON.parse(JSON.parse(e.data).message)); } catch {} }; }
 setInterval(renderCrew, 30000);
-const send = o => fetch(`https://ntfy.sh/${TOPIC}`, { method:'POST', body: JSON.stringify(o) });
-let watchId = null, last = 0;
-$('share').onclick = () => {
+const send = o => fetch(`https://ntfy.sh/${TOPIC}`, { method:'POST', body: JSON.stringify(o), keepalive:true });
+function setShareUI() { $('share').classList.toggle('live', sharing); $('shareTxt').textContent = sharing ? '공유 중' : '위치 공유'; if (crewTabOpen()) renderCrewTab(); }
+function toggleShare(resume) {
   if (!TOPIC) return toast('단톡방 링크로 들어와야 일행이 보여요');
-  if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; $('share').classList.remove('live'); $('shareTxt').textContent = '위치 공유'; toast('공유를 껐어요'); return; }
-  me = (prompt('일행에게 보일 이름(단톡 닉네임)', me || '') || '').trim(); if (!me) return;
-  localStorage.setItem('name', me);
+  if (sharing && !resume) {   // 끄기: 일행 지도에서도 바로 사라지게 알린다
+    navigator.geolocation.clearWatch(watchId); watchId = null; sharing = false;
+    localStorage.setItem('sharing', '0'); const p = { name: me, off: true, t: Date.now() }; upsert(p); send(p);
+    setShareUI(); toast('위치 공유를 껐어요'); return;
+  }
+  if (!me) { openTab('crewtab'); return toast('먼저 내 이름을 골라 주세요'); }
+  sharing = true; last = 0; localStorage.setItem('sharing', '1');
   watchId = navigator.geolocation.watchPosition(pos => {
     const p = { name: me, lat:+pos.coords.latitude.toFixed(5), lon:+pos.coords.longitude.toFixed(5), t: Date.now() };
     upsert(p); if (Date.now() - last > 30000) { last = Date.now(); send(p); }
-  }, err => toast('위치 권한을 허용해 주세요'), { enableHighAccuracy:true, maximumAge:15000 });
-  $('share').classList.add('live'); $('shareTxt').textContent = '공유 중'; toast('일행에게 내 위치가 보여요 📍');
-};
+  }, () => { toast('위치 권한을 허용해 주세요'); sharing = false; localStorage.setItem('sharing', '0'); setShareUI(); }, { enableHighAccuracy:true, maximumAge:15000 });
+  setShareUI(); if (!resume) toast('일행에게 내 위치가 보여요 📍');
+}
+$('share').onclick = () => toggleShare();
+// 다시 열었을 때: 전에 켜 두었으면 자동으로 이어서 공유
+if (TOPIC && me && localStorage.getItem('sharing') === '1') toggleShare(true);
 $('meet').onclick = () => {
   if (!TOPIC) return toast('단톡방 링크로 들어와야 해요');
   const c = map.getCenter();
