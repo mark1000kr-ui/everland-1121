@@ -280,7 +280,7 @@ function renderCrewTab() {
   const names = [...new Set([...MEMBERS, ...Object.keys(people)])];
   const onCount = names.filter(n => isOn(people[n])).length;
   $('sheetBody').innerHTML = `<h2>일행</h2><p class="lead">${names.length}명 중 <b style="color:var(--cool)">${onCount}명</b> 위치 공유 중 · 공유 중인 사람을 누르면 지도에서 찾아가요</p>
-    <div class="me-row"><div class="nm">${me ? `나: ${me}` : '먼저 내 이름을 골라 주세요'}<small>${sharing ? '켜짐 · 일행 지도에 내 위치가 보여요' : '꺼짐 · 켜면 일행 지도에 표시돼요'}</small></div>
+    <div class="me-row"><div class="nm">${me ? `나: ${me}` : '먼저 내 이름을 골라 주세요'}<small>${sharing ? '켜짐 · 일행 지도에 내 위치가 보여요' : '꺼짐 · 스위치를 켜면 일행 지도에 표시돼요'}</small></div>
       ${me ? `<button class="st" id="rename">이름 변경</button>` : ''}<button class="sw ${sharing ? 'on' : ''}" id="sw" aria-label="위치 공유 켜기/끄기"></button></div>
     ${me ? '' : `<div class="pick">${MEMBERS.map(n => `<button data-pick="${n}">${n}</button>`).join('')}<button data-pick="">직접 입력</button></div>`}` +
     names.map(n => { const p = people[n], on = isOn(p);
@@ -292,7 +292,7 @@ function renderCrewTab() {
   if ($('rename')) $('rename').onclick = () => { if (sharing) toggleShare(); me = ''; localStorage.removeItem('name'); renderCrewTab(); };
   $('sheetBody').querySelectorAll('[data-pick]').forEach(b => b.onclick = () => {
     const n = b.dataset.pick || (prompt('일행에게 보일 이름') || '').trim(); if (!n) return;
-    me = n; localStorage.setItem('name', me); renderCrewTab(); toast(`${me}(으)로 정했어요 · 스위치를 켜면 공유돼요`); });
+    me = n; localStorage.setItem('name', me); if (!sharing) toggleShare(); else renderCrewTab(); });
   $('sheetBody').querySelectorAll('.mem').forEach(e => e.onclick = () => { const p = people[e.dataset.n]; if (isOn(p)) { openTab('map'); map.flyTo([p.lat,p.lon], 18, { duration:.7 }); } else toast(`${e.dataset.n}님은 지금 공유 중이 아니에요`); });
 }
 function upsert(p) {
@@ -333,7 +333,8 @@ function toggleShare(resume) {
 }
 $('share').onclick = () => toggleShare();
 // 다시 열었을 때: 전에 켜 두었으면 자동으로 이어서 공유
-if (TOPIC && me && localStorage.getItem('sharing') === '1') toggleShare(true);
+// 기본값은 공유 켜짐(2026-11-20 대표님: '기본값은 위치 켜기임'). 직접 끈 사람만 꺼진 채로 둔다. 이름이 없으면 일행 탭을 열어 이름부터 고르게 한다
+if (TOPIC) { if (!me) setTimeout(() => openTab('crewtab'), 600); else if (localStorage.getItem('sharing') !== '0') toggleShare(true); }
 $('meet').onclick = () => {
   if (!TOPIC) return toast('단톡방 링크로 들어와야 해요');
   const c = map.getCenter();
