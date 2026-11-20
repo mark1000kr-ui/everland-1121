@@ -146,13 +146,7 @@ button { font-family:inherit; color:inherit; cursor:pointer; }
 </div>
 <div class="crew" id="crew"></div>
 
-<div class="fabs">
-  <button class="fab glass" id="headup" title="내가 보는 방향이 위로">🧭</button>
-  <button class="fab glass" id="locate" title="내 위치">🎯</button>
-  <button class="fab glass" id="fit" title="일행 모두 보기">👥</button>
-  <button class="fab glass" id="meet" title="모임장소">🚩</button>
-  <button class="fab share" id="share"><span class="dot"></span><span id="shareTxt">위치 공유</span></button>
-</div>
+
 
 <section class="sheet glass" id="sheet"><div class="grab"></div><div class="scroll" id="sheetBody"></div></section>
 
@@ -350,7 +344,7 @@ function upsert(p) {
 if (TOPIC) { const es = new EventSource(`https://ntfy.sh/${TOPIC}/sse?since=3h`); es.onmessage = e => { try { upsert(JSON.parse(JSON.parse(e.data).message)); } catch {} }; }
 setInterval(renderCrew, 30000);
 const send = o => fetch(`https://ntfy.sh/${TOPIC}`, { method:'POST', body: JSON.stringify(o), keepalive:true });
-function setShareUI() { $('share').classList.toggle('live', sharing); $('shareTxt').textContent = sharing ? '공유 중' : '위치 공유'; if (crewTabOpen()) renderCrewTab(); }
+function setShareUI() { if ($('share')) { $('share').classList.toggle('live', sharing); $('shareTxt').textContent = sharing ? '공유 중' : '위치 공유'; } if (crewTabOpen()) renderCrewTab(); }
 function toggleShare(resume) {
   if (!TOPIC) return toast('단톡방 링크로 들어와야 일행이 보여요');
   if (sharing && !resume) {   // 끄기: 일행 지도에서도 바로 사라지게 알린다
@@ -370,7 +364,7 @@ function toggleShare(resume) {
   }, () => { toast('위치 권한을 허용해 주세요'); sharing = false; localStorage.setItem('sharing', '0'); setShareUI(); }, { enableHighAccuracy:true, maximumAge:15000 });
   setShareUI(); if (!resume) toast('내 위치가 일행에게 공유돼요 📍 끄려면 일행 탭 스위치');
 }
-$('share').onclick = () => toggleShare();
+if ($('share')) $('share').onclick = () => toggleShare();
 // 내 위치 점: 공유 여부·에버랜드 안팎과 상관없이 내 화면에만 항상 표시(보내지 않음). 2026-11-21 대표님: "지도에 내 위치 표시가 안되는듯"
 let myDot = null, myRing = null, myFirst = true;
 if (navigator.geolocation) navigator.geolocation.watchPosition(pos => {
@@ -384,13 +378,13 @@ if (navigator.geolocation) navigator.geolocation.watchPosition(pos => {
 // 다시 열었을 때: 전에 켜 두었으면 자동으로 이어서 공유
 // 기본값은 공유 켜짐(2026-11-20 대표님: '기본값은 위치 켜기임'). 직접 끈 사람만 꺼진 채로 둔다. 이름이 없으면 일행 탭을 열어 이름부터 고르게 한다
 if (TOPIC) { if (!me) setTimeout(() => openTab('crewtab'), 600); else if (localStorage.getItem('sharing') !== '0') toggleShare(true); }
-$('meet').onclick = () => {
+if ($('meet')) $('meet').onclick = () => {
   if (!TOPIC) return toast('단톡방 링크로 들어와야 해요');
   const c = map.getCenter();
   if (confirm('지도 가운데를 모임장소로 찍어 일행에게 알릴까요?')) { const p = { type:'meet', name: me || '누군가', lat:+c.lat.toFixed(5), lon:+c.lng.toFixed(5), t: Date.now() }; upsert(p); send(p); }
 };
-$('locate').onclick = () => myDot ? map.flyTo(myDot.getLatLng(), 18, { duration:.7 }) : toast('위치를 찾는 중이에요… 권한을 허용해 주세요');
-$('fit').onclick = () => { const pts = Object.values(people).map(p => [p.lat,p.lon]); pts.length ? map.flyToBounds(pts, { padding:[90,90], maxZoom:17 }) : (map.flyTo([37.2918,127.2025],16), toast('아직 공유 중인 일행이 없어요')); };
+if ($('locate')) $('locate').onclick = () => myDot ? map.flyTo(myDot.getLatLng(), 18, { duration:.7 }) : toast('위치를 찾는 중이에요… 권한을 허용해 주세요');
+if ($('fit')) $('fit').onclick = () => { const pts = Object.values(people).map(p => [p.lat,p.lon]); pts.length ? map.flyToBounds(pts, { padding:[90,90], maxZoom:17 }) : (map.flyTo([37.2918,127.2025],16), toast('아직 공유 중인 일행이 없어요')); };
 
 // ── 먹고쉬기 + 길안내 ─────────────────────────────────────────────
 // 구역 위치(대략): 공식 지도 구역 기준. 정확한 매장 위치는 아님
@@ -473,7 +467,7 @@ function startNav(pl) {
   navTarget = pl; enableCompass(); openTab('map');
   $('navbar').classList.add('on'); $('crew').style.display = 'none';
   updateNav();
-  map.flyToBounds([myLL(), pl.pos], { padding:[120,120], maxZoom:18 });
+  map.setView(myLL(), 18);
 }
 function updateNav() {
   if (!navTarget || !myLL()) return;
@@ -485,23 +479,15 @@ function updateNav() {
   $('navDist').textContent = fmtD(d) + ' · 걸어서 ' + Math.max(1, Math.round(d / 70)) + '분';
   const rot = heading == null ? b : b - heading;
   $('navArrow').querySelector('svg').style.transform = `rotate(${rot}deg)`;
-  $('navCmp').textContent = heading == null ? '화살표 위 = 지도 위쪽(북). 폰을 돌리면 맞춰지게 하려면 화살표를 눌러 나침반 허용' : '폰이 향한 방향 기준 화살표';
+  $('navCmp').textContent = heading == null ? '방향 허용이 필요해요 · 화살표를 눌러 주세요' : '화면 위쪽 = 내가 보는 방향';
 }
 $('navArrow').onclick = enableCompass;
 // 방향 모드(2026-11-21 대표님: "화면 위쪽이 내가 가는 방향"): 켜면 나침반 방향대로 지도를 돌리고 내 위치를 따라간다. 끄면 북쪽이 위
-let headUp = false;
-$('headup').onclick = async () => {
-  headUp = !headUp; $('headup').classList.toggle('on', headUp);
-  if (headUp) {
-    await enableCompass();
-    if (myDot) map.setView(myDot.getLatLng(), Math.max(map.getZoom(), 17));
-    toast(heading == null ? '폰을 한 바퀴 돌리면 방향이 잡혀요 🧭' : '내가 보는 방향이 위로 와요 🧭');
-  } else { map.setBearing(0); toast('북쪽이 위로 돌아왔어요'); }
-};
-let lastBear = 0;
+// 길안내 중일 때만 화면 위쪽 = 내가 보는 방향(2026-11-21 대표님). 길안내를 끝내면 북쪽이 위로 돌아온다
+let lastBear = null;
 setInterval(() => {
-  if (!headUp) return;
-  if (heading != null && Math.abs(((heading - lastBear + 540) % 360) - 180) > 3) { lastBear = heading; map.setBearing(-heading); }
+  if (!navTarget) { if (lastBear !== null) { lastBear = null; map.setBearing(0); } return; }
+  if (heading != null && (lastBear === null || Math.abs(((heading - lastBear + 540) % 360) - 180) > 3)) { lastBear = heading; map.setBearing(-heading); }
   if (myDot) map.panTo(myDot.getLatLng(), { animate:true, duration:.5 });
 }, 700);
 $('navX').onclick = () => { navTarget = null; $('navbar').classList.remove('on'); $('crew').style.display = ''; if (navLine) { map.removeLayer(navLine); navLine = null; } };
