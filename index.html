@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>에버랜드 11/21 · 공포지수 지도</title>
+<meta property="og:title" content="에버랜드 11/21 · 공포지수 지도">
+<meta property="og:description" content="놀이기구 공포지수 0~10 · 지도 · 실시간 일행 위치">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root { --ink:#1b1b1f; --mute:#6b6b74; --line:#e6e6ea; --bg:#f6f6f8; --brand:#2f6b3a; }
+* { box-sizing:border-box; }
+body { margin:0; font-family:-apple-system,"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif; color:var(--ink); background:var(--bg); -webkit-tap-highlight-color:transparent; }
+header { padding:16px 16px 10px; background:#fff; border-bottom:1px solid var(--line); }
+h1 { font-size:20px; margin:0; letter-spacing:-0.02em; }
+.sub { font-size:13px; color:var(--mute); margin-top:3px; }
+nav { display:flex; gap:6px; padding:10px 12px; background:#fff; position:sticky; top:0; z-index:1000; border-bottom:1px solid var(--line); overflow-x:auto; }
+nav button { flex:none; border:1px solid var(--line); background:#fff; border-radius:999px; padding:7px 14px; font-size:14px; font-weight:600; color:var(--ink); }
+nav button.on { background:var(--ink); color:#fff; border-color:var(--ink); }
+section { display:none; } section.on { display:block; }
+#map { height:62vh; }
+.bar { display:flex; gap:8px; padding:10px 12px; flex-wrap:wrap; align-items:center; background:#fff; border-bottom:1px solid var(--line); }
+.bar button, .btn { border:1px solid var(--line); background:#fff; border-radius:10px; padding:8px 12px; font-size:14px; font-weight:600; }
+.btn.pri { background:var(--brand); color:#fff; border-color:var(--brand); }
+.note { font-size:12.5px; color:var(--mute); padding:8px 14px; line-height:1.5; }
+.ppl { padding:6px 12px 14px; background:#fff; }
+.ppl div { display:flex; justify-content:space-between; font-size:14px; padding:6px 2px; border-bottom:1px solid var(--line); }
+.ppl small { color:var(--mute); }
+.list { padding:8px 12px 30px; }
+.filters { display:flex; gap:6px; padding:10px 12px; overflow-x:auto; }
+.filters button { flex:none; border:1px solid var(--line); background:#fff; border-radius:999px; padding:6px 12px; font-size:13px; }
+.filters button.on { background:#eef4ef; border-color:var(--brand); color:var(--brand); font-weight:700; }
+.card { background:#fff; border:1px solid var(--line); border-radius:14px; padding:12px 14px; margin-bottom:8px; display:grid; grid-template-columns:56px 1fr auto; gap:12px; align-items:center; }
+.score { width:56px; height:56px; border-radius:12px; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#fff; font-weight:800; font-size:20px; }
+.score small { font-size:10px; font-weight:600; opacity:.85; }
+.card h3 { margin:0; font-size:16px; } .card p { margin:3px 0 0; font-size:12.5px; color:var(--mute); line-height:1.45; }
+.tags span { display:inline-block; font-size:11px; border:1px solid var(--line); border-radius:6px; padding:1px 6px; margin:4px 4px 0 0; color:#444; }
+.done { width:30px; height:30px; border-radius:50%; border:2px solid var(--line); background:#fff; font-size:15px; }
+.card.rode { opacity:.55; } .card.rode .done { background:var(--brand); border-color:var(--brand); color:#fff; }
+.box { background:#fff; border:1px solid var(--line); border-radius:14px; padding:14px; margin:10px 12px; font-size:14.5px; line-height:1.6; }
+.box h2 { font-size:16px; margin:0 0 6px; }
+.box ol, .box ul { margin:4px 0; padding-left:20px; }
+.wx { display:flex; gap:10px; overflow-x:auto; }
+.wx div { flex:none; text-align:center; font-size:13px; border:1px solid var(--line); border-radius:10px; padding:6px 8px; min-width:58px; }
+.leaflet-tooltip.me { background:#1b1b1f; color:#fff; border:0; font-weight:700; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🎢 에버랜드 11/21 공포지수 지도</h1>
+  <div class="sub">공포지수 0(평온)~10(극한) · 운영·대기는 당일 에버랜드 앱에서 꼭 확인</div>
+</header>
+<nav>
+  <button data-t="map" class="on">🗺️ 지도·일행</button>
+  <button data-t="rides">📋 공포지수</button>
+  <button data-t="course">🧭 추천 코스</button>
+  <button data-t="tips">🧥 날씨·꿀팁</button>
+</nav>
+
+<section id="map-sec" class="on">
+  <div id="map"></div>
+  <div class="bar">
+    <button class="btn pri" id="share">📍 내 위치 공유 시작</button>
+    <button class="btn" id="meet">🚩 여기를 모임장소로</button>
+    <button class="btn" id="fit">👥 일행 모두 보기</button>
+  </div>
+  <div class="ppl" id="ppl"></div>
+  <div class="note">위치는 '공유 시작'을 누른 사람만, 이 링크를 가진 사람끼리만 보입니다(30초마다 갱신, 창을 닫거나 '공유 중지'하면 멈춤). 기록은 중계 서버(ntfy.sh)에 최대 몇 시간만 남습니다. 지도 핀은 위치가 확인된 놀이기구만 표시했어요.</div>
+</section>
+
+<section id="rides-sec">
+  <div class="filters" id="filters"></div>
+  <div class="list" id="list"></div>
+</section>
+
+<section id="course-sec"><div id="course"></div></section>
+<section id="tips-sec"><div id="tips"></div></section>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// 공포지수: 높이·낙하·회전·속도·체감(무서움) 종합한 주관 평가. pos 는 OpenStreetMap 에서 위치가 확인된 것만.
+const RIDES = [
+  { n:'T익스프레스', s:9.6, z:'유러피언 어드벤처', h:'130~195cm', tag:['나무 롤러코스터','77도 낙하','최고 104km/h'], d:'56m에서 77도로 떨어지는 국내 대표 우든코스터. 에어타임 연속.', pos:[37.28982,127.20248] },
+  { n:'휴먼스카이', s:8.9, z:'에버랜드 상공', h:'키 제한 확인', tag:['유료','자유낙하 스윙'], d:'높이 끌어올려 줄을 놓으면 진자처럼 떨어지는 스카이코스터형. 별도 요금.', pos:[37.29306,127.20438] },
+  { n:'더블락스핀', s:8.3, z:'아메리칸 어드벤처', h:'키 제한 확인', tag:['360도 회전','거꾸로'], d:'공중에서 계속 뒤집힘. 멀미 약하면 비추.' },
+  { n:'블러드시티(호러)', s:8.0, z:'시즌 이벤트', h:'-', tag:['호러','11/22까지 예정'], d:'가을 호러 시즌 공간. 운영 시간·입장 방식은 앱 확인.' },
+  { n:'롤링엑스트레인', s:7.6, z:'아메리칸 어드벤처', h:'키 제한 확인', tag:['루프 2회','코스터'], d:'360도 루프가 있는 스틸 코스터. 짧고 강함.' },
+  { n:'허리케인', s:7.0, z:'아메리칸 어드벤처', h:'키 제한 확인', tag:['회전','원심력'], d:'빙글빙글 + 상하 움직임. 어지러움 주의.' },
+  { n:'렛츠트위스트', s:6.8, z:'아메리칸 어드벤처', h:'키 제한 확인', tag:['공중 회전'], d:'원판에 앉아 높이 들려 비틀어 돔.' },
+  { n:'썬더폴스', s:6.4, z:'아메리칸 어드벤처', h:'키 제한 확인', tag:['💦 젖음','20m 낙하'], d:'보트 타고 20m 낙하 + 백드롭. 추운 날 젖으면 고생 — 우비 추천. 저온 시 운휴 가능.' },
+  { n:'콜럼버스 대탐험', s:6.0, z:'아메리칸 어드벤처', h:'키 제한 확인', tag:['바이킹'], d:'대형 바이킹. 맨 끝자리가 제일 무서움.' },
+  { n:'아마존 익스프레스', s:4.2, z:'주토피아', h:'키 제한 확인', tag:['💦 많이 젖음','래프팅'], d:'원형 보트 급류. 무섭진 않은데 물이 랜덤. 저온 시 운휴 가능.', pos:[37.29127,127.20648] },
+  { n:'스카이댄싱', s:3.5, z:'매직랜드', h:'키 제한 확인', tag:['그네식 회전'], d:'높이 도는 의자 그네.', pos:[37.29201,127.19935] },
+  { n:'플래시팡팡', s:3.0, z:'매직랜드', h:'키 제한 확인', tag:['가족형'], d:'오르내리는 가족형 기구.', pos:[37.29292,127.19894] },
+  { n:'매직스윙', s:3.0, z:'매직랜드', h:'키 제한 확인', tag:['가족형','흔들림'], d:'작은 바이킹 느낌.', pos:[37.29217,127.19882] },
+  { n:'피터팬', s:2.5, z:'매직랜드', h:'-', tag:['가족형'], d:'가볍게 나는 기분.', pos:[37.29266,127.19898] },
+  { n:'범퍼카', s:2.0, z:'매직랜드', h:'키 제한 확인', tag:['부딪히기'], d:'공포보다 스트레스 해소.', pos:[37.29232,127.19953] },
+  { n:'스카이크루즈', s:1.8, z:'이동 곤돌라', h:'-', tag:['곤돌라','이동'], d:'높이는 있지만 천천히. 다리 쉬기 좋음.', pos:[37.29191,127.2001] },
+  { n:'헬리싸이클', s:1.5, z:'매직랜드', h:'-', tag:['페달','어린이'], d:'페달 밟는 헬리콥터.', pos:[37.29246,127.19842] },
+  { n:'로보트카', s:1.0, z:'매직랜드', h:'-', tag:['어린이'], d:'아이용 자동차.', pos:[37.29289,127.19937] },
+  { n:'로스트밸리', s:1.0, z:'주토피아', h:'-', tag:['동물','수륙양용차'], d:'수륙양용차로 초식동물 관람.' },
+  { n:'사파리월드', s:0.8, z:'주토피아', h:'-', tag:['동물','버스'], d:'버스 타고 맹수 구경. 웃음 담당.' },
+  { n:'회전목마', s:0.5, z:'글로벌 페어', h:'-', tag:['사진 맛집'], d:'인생샷 장소.', pos:[37.29136,127.20412] },
+];
+const color = s => s >= 8.5 ? '#b3261e' : s >= 7 ? '#d9531e' : s >= 5 ? '#e0a100' : s >= 3 ? '#3f8f5a' : '#5b8cc4';
+const lv = s => s >= 8.5 ? '극한' : s >= 7 ? '강함' : s >= 5 ? '중간' : s >= 3 ? '순한맛' : '평온';
+
+// 탭
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('nav button').forEach(x => x.classList.toggle('on', x === b));
+  document.querySelectorAll('section').forEach(s => s.classList.toggle('on', s.id === b.dataset.t + '-sec'));
+  if (b.dataset.t === 'map') setTimeout(() => map.invalidateSize(), 50);
+});
+
+// 지도
+const map = L.map('map', { zoomControl:false }).setView([37.2918, 127.2025], 16);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:19, attribution:'© OpenStreetMap' }).addTo(map);
+RIDES.filter(r => r.pos).forEach(r => {
+  L.circleMarker(r.pos, { radius:9, color:'#fff', weight:2, fillColor:color(r.s), fillOpacity:1 }).addTo(map)
+   .bindTooltip(`${r.n} ${r.s.toFixed(1)}`, { permanent:r.s >= 6, direction:'top', offset:[0,-8] })
+   .bindPopup(`<b>${r.n}</b> · 공포 ${r.s.toFixed(1)} (${lv(r.s)})<br>${r.d}`);
+});
+
+// 공포지수 목록
+const rode = new Set(JSON.parse(localStorage.getItem('rode') || '[]'));
+const F = [['전체',()=>true],['🔥 7 이상',r=>r.s>=7],['😐 3~7',r=>r.s>=3&&r.s<7],['🙂 3 미만',r=>r.s<3],['💦 젖는 것',r=>r.tag.some(t=>t.includes('젖'))],['✅ 안 탄 것',r=>!rode.has(r.n)]];
+let fi = 0;
+function renderList() {
+  document.getElementById('filters').innerHTML = F.map((f,i)=>`<button class="${i===fi?'on':''}" data-i="${i}">${f[0]}</button>`).join('');
+  document.querySelectorAll('#filters button').forEach(b => b.onclick = () => { fi = +b.dataset.i; renderList(); });
+  document.getElementById('list').innerHTML = RIDES.filter(F[fi][1]).map(r => `
+    <div class="card ${rode.has(r.n)?'rode':''}">
+      <div class="score" style="background:${color(r.s)}">${r.s.toFixed(1)}<small>${lv(r.s)}</small></div>
+      <div><h3>${r.n}</h3><p>${r.z} · 키 ${r.h}</p><p>${r.d}</p><div class="tags">${r.tag.map(t=>`<span>${t}</span>`).join('')}</div></div>
+      <button class="done" data-n="${r.n}" title="탔어요">✓</button>
+    </div>`).join('');
+  document.querySelectorAll('.done').forEach(b => b.onclick = () => {
+    rode.has(b.dataset.n) ? rode.delete(b.dataset.n) : rode.add(b.dataset.n);
+    localStorage.setItem('rode', JSON.stringify([...rode])); renderList();
+  });
+}
+renderList();
+
+// 추천 코스
+document.getElementById('course').innerHTML = `
+<div class="box"><h2>🐣 쫄보 코스 (최고 3.5)</h2><ol><li>회전목마 → 사파리월드 → 로스트밸리</li><li>스카이크루즈로 이동하며 경치</li><li>매직랜드: 피터팬 · 플래시팡팡 · 스카이댄싱</li><li>범퍼카로 마무리</li></ol></div>
+<div class="box"><h2>😎 보통 코스 (최고 7.0)</h2><ol><li>오픈런: 사파리월드(대기 짧을 때)</li><li>콜럼버스 대탐험 → 렛츠트위스트 → 허리케인</li><li>아마존 익스프레스(우비 필수, 날 따뜻한 낮에)</li><li>저녁: 회전목마·퍼레이드</li></ol></div>
+<div class="box"><h2>🔥 강심장 코스 (최고 9.6)</h2><ol><li>오픈 직후 T익스프레스 직행(대기 가장 짧음)</li><li>롤링엑스트레인 → 더블락스핀 → 허리케인</li><li>썬더폴스(낮 기온 높을 때)</li><li>휴먼스카이(유료) or 블러드시티(시즌 호러)</li></ol></div>
+<div class="note">대기 줄이는 법: 오픈 직후 인기 기구 먼저, 점심시간(12~13시)·퍼레이드 시간에 인기 기구, 에버랜드 앱 '스마트 줄서기' 확인.</div>`;
+
+// 날씨·꿀팁 (Open-Meteo, 키 없음)
+document.getElementById('tips').innerHTML = `
+<div class="box"><h2>🌡️ 11/21 에버랜드 날씨(시간별)</h2><div class="wx" id="wx">불러오는 중…</div></div>
+<div class="box"><h2>🎒 챙길 것</h2><ul><li>핫팩·장갑·목도리 (저녁엔 영하권 가능)</li><li>보조배터리 (위치 공유·앱 쓰면 금방 닳아요)</li><li>우비 (썬더폴스·아마존 탈 거면 필수, 젖으면 추움)</li><li>신분증·할인카드, 편한 신발</li></ul></div>
+<div class="box"><h2>💡 꿀팁</h2><ul><li>롤러코스터는 안경·모자·폰 고정. 짐은 보관함</li><li>추운 날은 물 젖는 기구를 낮 가장 따뜻한 시간에</li><li>길 잃으면 '모임장소' 핀으로 집결</li><li>운휴·대기시간은 에버랜드 공식 앱이 가장 정확</li></ul></div>`;
+fetch('https://api.open-meteo.com/v1/forecast?latitude=37.2918&longitude=127.2025&hourly=temperature_2m,apparent_temperature,precipitation_probability&timezone=Asia%2FSeoul&start_date=2026-11-21&end_date=2026-11-21')
+  .then(r => r.json()).then(d => {
+    const h = d.hourly; let out = '';
+    for (let i = 9; i <= 22; i++) out += `<div><b>${i}시</b><br>${Math.round(h.temperature_2m[i])}°<br><small>체감 ${Math.round(h.apparent_temperature[i])}°</small><br><small>☔${h.precipitation_probability[i] ?? '-'}%</small></div>`;
+    document.getElementById('wx').innerHTML = out;
+  }).catch(() => document.getElementById('wx').textContent = '날씨를 못 불러왔어요');
+
+// 실시간 일행 위치 (ntfy.sh 중계, 방 이름은 링크 # 뒤에)
+const room = (location.hash.match(/r=([\w-]+)/) || [])[1];
+const TOPIC = room ? 'everland1121-' + room : null;
+const people = {}; const marks = {}; let meetMark = null;
+let me = localStorage.getItem('name') || '';
+function renderPeople() {
+  const now = Date.now();
+  document.getElementById('ppl').innerHTML = Object.values(people).sort((a,b)=>b.t-a.t).map(p =>
+    `<div><span>${p.name === me ? '🟢 ' : '🔵 '}${p.name}</span><small>${Math.round((now - p.t)/60000)}분 전</small></div>`).join('') || '<div><small>아직 공유 중인 사람이 없어요</small></div>';
+}
+function upsert(p) {
+  if (p.type === 'meet') {
+    if (meetMark) map.removeLayer(meetMark);
+    meetMark = L.marker([p.lat, p.lon]).addTo(map).bindTooltip(`🚩 모임장소 (${p.name})`, { permanent:true, direction:'top' });
+    return;
+  }
+  if (!p.name) return;
+  if (people[p.name] && people[p.name].t > p.t) return;
+  people[p.name] = p;
+  const ll = [p.lat, p.lon];
+  if (!marks[p.name]) marks[p.name] = L.circleMarker(ll, { radius:8, color:'#fff', weight:3, fillColor: p.name === me ? '#1a7f37' : '#2563eb', fillOpacity:1 }).addTo(map).bindTooltip(p.name, { permanent:true, direction:'right', className:'me' });
+  else marks[p.name].setLatLng(ll);
+  renderPeople();
+}
+if (TOPIC) {
+  const es = new EventSource(`https://ntfy.sh/${TOPIC}/sse?since=3h`);
+  es.onmessage = e => { try { const m = JSON.parse(e.data); upsert(JSON.parse(m.message)); } catch {} };
+}
+setInterval(renderPeople, 30000); renderPeople();
+const send = obj => fetch(`https://ntfy.sh/${TOPIC}`, { method:'POST', body: JSON.stringify(obj) });
+let watchId = null, last = 0;
+document.getElementById('share').onclick = () => {
+  if (!TOPIC) return alert('단톡방에 올라온 링크로 들어와야 일행 위치를 볼 수 있어요.');
+  if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; document.getElementById('share').textContent = '📍 내 위치 공유 시작'; return; }
+  me = prompt('일행에게 보일 이름(단톡 닉네임)', me || '') || ''; if (!me) return;
+  localStorage.setItem('name', me);
+  watchId = navigator.geolocation.watchPosition(pos => {
+    const p = { name: me, lat: +pos.coords.latitude.toFixed(5), lon: +pos.coords.longitude.toFixed(5), t: Date.now() };
+    upsert(p);
+    if (Date.now() - last > 30000) { last = Date.now(); send(p); }
+  }, err => alert('위치 권한을 허용해 주세요: ' + err.message), { enableHighAccuracy:true, maximumAge:15000 });
+  document.getElementById('share').textContent = '⏹ 공유 중지';
+};
+document.getElementById('meet').onclick = () => {
+  if (!TOPIC) return alert('단톡방 링크로 들어와야 해요.');
+  const c = map.getCenter();
+  if (confirm('지도 가운데를 모임장소로 정해 일행에게 알릴까요?')) { const p = { type:'meet', name: me || '누군가', lat:+c.lat.toFixed(5), lon:+c.lng.toFixed(5), t: Date.now() }; upsert(p); send(p); }
+};
+document.getElementById('fit').onclick = () => {
+  const pts = Object.values(people).map(p => [p.lat, p.lon]);
+  if (pts.length) map.fitBounds(pts, { padding:[40,40], maxZoom:17 }); else map.setView([37.2918, 127.2025], 16);
+};
+</script>
+</body>
+</html>
