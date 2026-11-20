@@ -263,7 +263,7 @@ const TOPIC = room ? 'everland1121-' + room : null;
 const HUES = ['#3ddc97','#5aa9ff','#ffc43d','#ff8ad1','#b18cff','#ff8a3d','#4de1e1','#c6f05a','#ff6b6b','#9ad0ff','#ffd28a','#a0f0c8'];
 const hue = n => HUES[[...n].reduce((a,c)=>a+c.charCodeAt(0),0) % HUES.length];
 // 단톡방 참여자 12명(2026-11-20 대표님 캡처). 여기 없는 이름도 '직접 입력'으로 참여 가능
-const MEMBERS = ['마크','피치','가을','겨울','돌돌','디그','멋진 곰돌','방가','뿜뿜','안농','춘상','팝콘'];
+const MEMBERS = ['마크','피치','가을','겨울','돌돌','디그','곰돌','방가','뿜뿜','안뇽','춘상','팝콘'];
 const people = {}, marks = {}; let meetMark = null, me = localStorage.getItem('name') || '';
 let watchId = null, last = 0, sharing = false;
 const ago = t => { const m = Math.max(0, Math.round((Date.now() - t) / 60000)); return m < 1 ? '방금' : m < 60 ? m + '분 전' : Math.floor(m / 60) + '시간 전'; };
