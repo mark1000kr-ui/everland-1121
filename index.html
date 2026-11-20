@@ -130,6 +130,7 @@ button { font-family:inherit; color:inherit; cursor:pointer; }
 .navbar .info { flex:1; } .navbar .info b { display:block; font-size:24px; font-weight:900; letter-spacing:-.02em; } .navbar .info small { color:var(--mute); font-size:13px; font-weight:700; }
 .navbar .x { border:1px solid var(--edge); background:var(--glass2); border-radius:12px; padding:8px 11px; font-size:13px; font-weight:800; }
 .navbar .cmp { display:block; font-size:11.5px; color:var(--mute); margin-top:2px; }
+.poi { width:24px; height:24px; border-radius:7px; background:rgba(13,17,23,.78); border:1px solid rgba(255,255,255,.35); display:flex; align-items:center; justify-content:center; font-size:13px; transform:translate(-50%,-50%); box-shadow:0 2px 6px rgba(0,0,0,.3); }
 .toast { position:fixed; left:50%; top:calc(140px + env(safe-area-inset-top,0px)); transform:translateX(-50%) translateY(-20px); opacity:0; z-index:900; border-radius:14px; padding:10px 16px; font-size:14px; font-weight:700; transition:.3s; pointer-events:none; }
 .toast.show { opacity:1; transform:translateX(-50%); }
 </style>
@@ -218,8 +219,8 @@ function drawPins() {
   const z = map.getZoom();
   RIDES.filter(r => r.pos).forEach(r => {
     // 멀리서 보면 순한 기구(4 미만)는 작은 점만, 가까이(17+)·무서운 기구는 이름표
-    const full = z >= 17 || r.s >= 4;
-    const html = full ? `<div class="pin" style="--c:${col(r.s)}"><b>${r.s.toFixed(1)}</b><span>${r.n}</span></div>` : `<div class="dot" style="--c:${col(r.s)}"></div>`;
+    const full = z >= 18 || (z >= 17 && r.s >= 7);
+    const html = full ? `<div class="pin" style="--c:${col(r.s)}"><b>${r.s.toFixed(1)}</b><span>${r.n}</span></div>` : r.s >= 4 ? `<div class="pin" style="--c:${col(r.s)}"><b>${r.s.toFixed(1)}</b></div>` : `<div class="dot" style="--c:${col(r.s)}"></div>`;
     L.marker(r.pos, { icon: L.divIcon({ className:'', html, iconSize:[0,0] }), zIndexOffset: Math.round(r.s*100) })
      .on('click', () => { openTab('rides'); setTimeout(() => document.querySelector(`[data-ride="${r.n}"]`)?.scrollIntoView({ behavior:'smooth', block:'center' }), 350); })
      .addTo(pinLayer);
@@ -336,7 +337,7 @@ function upsert(p) {
   const q = people[p.name];
   if (isOn(q)) {
     const html = `<div class="person" style="position:relative"><b style="background:${hue(q.name)}">${q.name.slice(0,1)}</b><span>${q.name}${q.name===me?' (나)':''}</span></div>`;
-    if (!marks[q.name]) marks[q.name] = L.marker([q.lat,q.lon], { icon: L.divIcon({ className:'', html, iconSize:[0,0] }), zIndexOffset:1000 }).addTo(map);
+    if (!marks[q.name]) marks[q.name] = L.marker([q.lat,q.lon], { icon: L.divIcon({ className:'', html, iconSize:[0,0] }), zIndexOffset:10000 }).addTo(map);
     else marks[q.name].setLatLng([q.lat,q.lon]);
   }
   renderCrew();
@@ -417,8 +418,10 @@ const PLACES = [
   { n:'화장실(주토피아 쪽)', k:'🚻', t:'화장실', pos:[37.29339,127.20661] },
 ].map(p => p.pos ? p : { ...p, pos: jit(p.z, p.i), approx: true });
 const placeLayer = L.layerGroup().addTo(map);
-PLACES.forEach(pl => L.marker(pl.pos, { icon: L.divIcon({ className:'', html:`<div class="pin" style="--c:#9aa4b2"><b style="color:#fff">${pl.k}</b><span>${pl.n}</span></div>`, iconSize:[0,0] }) })
-  .on('click', () => startNav(pl)).addTo(placeLayer));
+// 지도가 가려지지 않게 먹고쉬기 핀은 작은 아이콘만, 누르면 이름과 길안내(2026-11-21 대표님: "다가려서 멤버위치 안보일듯")
+PLACES.forEach(pl => L.marker(pl.pos, { icon: L.divIcon({ className:'', html:`<div class="poi">${pl.k}</div>`, iconSize:[0,0] }), zIndexOffset:-500 })
+  .bindPopup(() => { const d = document.createElement('div'); d.innerHTML = `<b>${pl.n}</b><br><small>${pl.t}${pl.h ? ' · ' + pl.h : ''}</small><br>`; const b = document.createElement('button'); b.className = 'navgo'; b.style.marginTop = '6px'; b.textContent = '길안내'; b.onclick = () => { map.closePopup(); startNav(pl); }; d.append(b); return d; })
+  .addTo(placeLayer));
 const R = 6371000, rad = d => d * Math.PI / 180;
 function distBear(a, b) {
   const [la1, lo1] = a.map(rad), [la2, lo2] = b.map(rad);
